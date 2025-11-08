@@ -88,12 +88,10 @@ You can customize the message bus behavior by also passing options:
 
 ```ts
 const bus = createMessageBus({
-  // Prevents publishing from failing if a message handler throws
-  safePublishing: true,
-  // Handles errors thrown by message handlers (requires safePublishing: true).
+  // Handles errors thrown from message handlers.
   // By default, caught unhandled errors are printed to console.error.
-  errorHandler: () => {}
-});                       
+  errorHandler: (e) => { /* ... */ }
+});
 ```
 
 ### Child buses

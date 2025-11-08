@@ -114,53 +114,20 @@ describe("MessageBus", () => {
     );
   });
 
-  it("should throw if handler errors out", () => {
-    expect(() => {
-      messageBus.subscribe(TestTopic, () => {
-        throw new Error("some error occurred");
-      });
-
-      messageBus.publish(TestTopic, "it works");
-      vi.runAllTimers();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `
-      [Error: [message-bus] unhandled error in message handler
-        [cause] some error occurred]
-      `,
-    );
-  });
-
-  it("should not throw if handler errors out and safePublishing is true", () => {
-    const messageBus = createMessageBus({
-      safePublishing: true,
-    });
-
+  it("should intercept unhandled errors coming from message handlers", () => {
     messageBus.subscribe(TestTopic, () => {
       throw new Error("some error occurred");
     });
 
     vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
       expect(args).toHaveLength(2);
-      expect(args[0]).toBe("[message-bus] caught unhandled error in message handler (safePublishing: true).");
+      expect(args[0]).toBe("[message-bus] caught unhandled error from message handler.");
       expect(String(args[1])).toBe("Error: some error occurred");
     });
 
     // Should not let errors escape, but print to console.error instead
     messageBus.publish(TestTopic, "it works");
     vi.runAllTimers();
-  });
-
-  it("should not throw if handler errors out and safePublishing is true", () => {
-    messageBus.subscribe(TestTopic, () => {});
-
-    // We can call dispose() as many times we want
-    messageBus.dispose();
-    messageBus.dispose();
-
-    expect(() => {
-      messageBus.publish(TestTopic, "it does not work");
-      vi.runAllTimers();
-    }).toThrowErrorMatchingInlineSnapshot(`[Error: [message-bus] the message bus is disposed]`);
   });
 
   it("should propagate message to child buses (recursively)", () => {
@@ -336,6 +303,18 @@ describe("MessageBus", () => {
     expect(() => messageBus.subscribe(TopicWithLimit)).not.toThrow();
     expect(() => messageBus.subscribe(TopicWithLimit)).toThrowErrorMatchingInlineSnapshot(
       `[Error: [message-bus] Topic<TopicWithLimit> has reached its subscription limit (2)]`,
+    );
+  });
+
+  it("should throw if the message bus is disposed", () => {
+    messageBus.subscribe(TestTopic, () => {});
+
+    // We can call dispose() as many times we want
+    messageBus.dispose();
+    messageBus.dispose();
+
+    expect(() => messageBus.publish(TestTopic, "it does not work")).toThrowErrorMatchingInlineSnapshot(
+      `[Error: [message-bus] the message bus is disposed]`,
     );
   });
 

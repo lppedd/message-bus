@@ -1,4 +1,4 @@
-import { assert, error, tag } from "./errors";
+import { assert, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type {
@@ -35,10 +35,7 @@ export class MessageBusImpl implements MessageBus {
     this.myParent = parent;
     this.myListeners = listeners ?? new Set();
     this.myOptions = {
-      safePublishing: false,
-      errorHandler: (e) => {
-        console.error(tag("caught unhandled error in message handler (safePublishing: true)."), e);
-      },
+      errorHandler: (e) => console.error(tag("caught unhandled error from message handler."), e),
       ...options,
     };
   }
@@ -198,11 +195,7 @@ export class MessageBusImpl implements MessageBus {
         try {
           registration.handler(data);
         } catch (e) {
-          if (!this.myOptions.safePublishing) {
-            error("unhandled error in message handler", e);
-          }
-
-          this.myOptions.errorHandler(e);
+          void this.myOptions.errorHandler(e);
         }
       }
     }

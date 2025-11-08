@@ -3,22 +3,13 @@ import type { Topic, Topics } from "./topic";
 
 export interface MessageBusOptions {
   /**
-   * If `true`, errors thrown by message handlers are caught and sent
-   * to the `errorHandler` instead of being allowed to propagate.
+   * A handler for errors thrown from message handlers.
    *
-   * The default `errorHandler` prints to `console.error`.
-   *
-   * @defaultValue false
-   */
-  readonly safePublishing: boolean;
-
-  /**
-   * A handler for caught unhandled errors from message handlers,
-   * invoked when `safePublishing` is true.
+   * Note that if the error handler returns a Promise, it is not awaited.
    *
    * @defaultValue (e) => console.error(e)
    */
-  readonly errorHandler: (e: unknown) => void;
+  readonly errorHandler: (e: unknown) => void | Promise<void>;
 }
 
 export interface ChildMessageBusOptions extends MessageBusOptions {
