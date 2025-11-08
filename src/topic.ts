@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import type { Constructor } from "./contructor";
-import { error } from "./errors";
+import { assert, error } from "./errors";
 import { getMetadata } from "./metadata";
 import { defaultPriority } from "./registry";
 
@@ -37,6 +37,18 @@ export interface Topic<T = unknown> {
   readonly broadcastDirection: BroadcastDirection;
 
   /**
+   * The maximum number of subscriptions the topic allows, regardless of
+   * whether they are eager or lazy. Even an inactive lazy subscription
+   * counts toward this limit.
+   *
+   * Once the limit is reached, additional subscription attempts will
+   * throw an error.
+   *
+   * @defaultValue Number.POSITIVE_INFINITY
+   */
+  readonly subscriptionLimit: number;
+
+  /**
    * Ensures that different Topic<T> types are not structurally compatible.
    * This property is never used at runtime.
    *
@@ -53,6 +65,27 @@ export type Topics<T extends [any, ...any[]]> = {
 };
 
 /**
+ * Topic behavior customizations.
+ */
+export type TopicOptions = {
+  /**
+   * The broadcasting direction for the topic.
+   *
+   * @defaultValue children
+   */
+  readonly broadcastDirection: BroadcastDirection;
+
+  /**
+   * The maximum number of allowed subscriptions for the topic.
+   *
+   * Must be greater than 0.
+   *
+   * @defaultValue {@link Number.POSITIVE_INFINITY}
+   */
+  readonly subscriptionLimit: number;
+};
+
+/**
  * Creates a new {@link Topic} that can be used to publish or subscribe to messages.
  *
  * @example
@@ -63,13 +96,19 @@ export type Topics<T extends [any, ...any[]]> = {
  * ```
  *
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
- * @param broadcastDirection The broadcasting direction for the topic. `children` by default.
+ * @param options Optional topic behavior customizations.
  */
-export function createTopic<T>(
-  displayName: string,
-  broadcastDirection: BroadcastDirection = "children",
-): Topic<T> {
+export function createTopic<T>(displayName: string, options?: Partial<TopicOptions>): Topic<T> {
   const topicDebugName = `Topic<${displayName}>`;
+  const topicOptions: TopicOptions = {
+    broadcastDirection: "children",
+    subscriptionLimit: Number.POSITIVE_INFINITY,
+    ...options,
+  };
+
+  const limit = topicOptions.subscriptionLimit;
+  assert(limit > 0, `the topic subscription limit must be greater than 0, but is ${limit}`);
+
   const topic = (priority: number = defaultPriority): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
@@ -99,8 +138,15 @@ export function createTopic<T>(
     };
   };
 
-  (topic as any).displayName = topicDebugName;
-  (topic as any).broadcastDirection = broadcastDirection;
-  (topic as any).toString = () => topicDebugName;
-  return topic as unknown as Topic<T>;
+  type Writable<T> = {
+    -readonly [P in keyof T]: T[P];
+  };
+
+  const writableTopic = topic as unknown as Writable<Topic<T>>;
+  writableTopic.displayName = topicDebugName;
+  writableTopic.broadcastDirection = topicOptions.broadcastDirection;
+  writableTopic.subscriptionLimit = topicOptions.subscriptionLimit;
+  writableTopic.toString = () => topicDebugName;
+
+  return writableTopic as Topic<T>;
 }

@@ -1,3 +1,4 @@
+import { assert } from "./errors";
 import type { MessageHandler } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
@@ -8,6 +9,8 @@ export class HandlerRegistration implements Registration {
   private readonly myTopics: Topic[];
   private readonly myHandler: MessageHandler;
 
+  // This is an eager registration and thus it is active immediately
+  isActive: boolean = true;
   isDisposed: boolean = false;
   remaining: number;
   priority: number;
@@ -44,10 +47,16 @@ export class HandlerRegistration implements Registration {
   };
 
   dispose = (): void => {
+    if (this.isDisposed) {
+      return;
+    }
+
     this.isDisposed = true;
+    this.isActive = false;
 
     for (const topic of this.myTopics) {
-      this.myRegistry.delete(topic, this);
+      const result = this.myRegistry.delete(topic, this);
+      assert(result, "could not unregister as registration is missing");
     }
   };
 }

@@ -193,7 +193,7 @@ describe("MessageBus", () => {
   });
 
   it("should propagate message to parent bus (not recursively)", () => {
-    const ParentTestTopic = createTopic<string>("ParentTestTopic", "parent");
+    const ParentTestTopic = createTopic<string>("ParentTestTopic", { broadcastDirection: "parent" });
     const handler = vi.fn(() => {});
     messageBus.subscribe(ParentTestTopic, handler);
 
@@ -322,6 +322,21 @@ describe("MessageBus", () => {
 
     vi.runAllTimers();
     expect(listener).toHaveBeenCalledExactlyOnceWith(TestTopic, "one", 0);
+  });
+
+  it("should respect the topic subscription limit", () => {
+    // No limit
+    expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
+    expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
+    expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
+
+    // Max 2 subscriptions
+    const TopicWithLimit = createTopic("TopicWithLimit", { subscriptionLimit: 2 });
+    expect(() => messageBus.subscribe(TopicWithLimit)).not.toThrow();
+    expect(() => messageBus.subscribe(TopicWithLimit)).not.toThrow();
+    expect(() => messageBus.subscribe(TopicWithLimit)).toThrowErrorMatchingInlineSnapshot(
+      `[Error: [message-bus] Topic<TopicWithLimit> has reached its subscription limit (2)]`,
+    );
   });
 
   it("should dispose itself and children", () => {

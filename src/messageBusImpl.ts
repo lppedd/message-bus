@@ -93,6 +93,13 @@ export class MessageBusImpl implements MessageBus {
     this.checkDisposed();
     const topics = Array.isArray(topic) ? topic : [topic];
     assert(topics.length > 0, "at least one topic must be provided for subscription");
+
+    for (const topic of topics) {
+      const count = this.myRegistry.get(topic)?.length ?? 0;
+      const limit = topic.subscriptionLimit;
+      assert(count < limit, `${topic.toString()} has reached its subscription limit (${limit})`);
+    }
+
     return handler
       ? new HandlerRegistration(this.myRegistry, topics, handler, limit, priority)
       : new LazyAsyncRegistration(this.myRegistry, topics, limit, priority);
@@ -172,7 +179,8 @@ export class MessageBusImpl implements MessageBus {
       }
     }
 
-    const registrations = this.myRegistry.get(topic);
+    // We must consider only active registrations
+    const registrations = this.myRegistry.get(topic)?.filter((r) => r.isActive);
     const registrationCount = registrations?.length ?? 0;
 
     if (listeners) {
@@ -212,8 +220,6 @@ export class MessageBusImpl implements MessageBus {
   }
 
   private checkDisposed(): void {
-    if (this.myDisposed) {
-      error("the message bus is disposed");
-    }
+    assert(!this.myDisposed, "the message bus is disposed");
   }
 }
