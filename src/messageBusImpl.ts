@@ -95,7 +95,7 @@ export class MessageBusImpl implements MessageBus {
     assert(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      const count = this.myRegistry.get(topic)?.length ?? 0;
+      const count = this.myRegistry.get(topic).length;
       const limit = topic.subscriptionLimit;
       assert(count < limit, `${topic.toString()} has reached its subscription limit (${limit})`);
     }
@@ -180,7 +180,7 @@ export class MessageBusImpl implements MessageBus {
     }
 
     // We must consider only active registrations
-    const registrations = this.myRegistry.get(topic)?.filter((r) => r.isActive);
+    const registrations = this.myRegistry.get(topic, true);
     const registrationCount = registrations?.length ?? 0;
 
     if (listeners) {
