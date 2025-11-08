@@ -9,6 +9,7 @@ export const defaultPriority: number = 1;
 
 // @internal
 export interface Registration extends Subscription {
+  isActive: boolean;
   isDisposed: boolean;
   remaining: number;
   priority: number;
@@ -33,16 +34,18 @@ export class SubscriptionRegistry {
     registrations.push(registration);
   }
 
-  delete(topic: Topic, registration: Registration): void {
+  delete(topic: Topic, registration: Registration): boolean {
     const registrations = this.myMap.get(topic);
 
     if (registrations) {
       const index = registrations.indexOf(registration);
 
       if (index > -1) {
-        registrations.splice(index, 1);
+        return registrations.splice(index, 1).length > 0;
       }
     }
+
+    return false;
   }
 
   values(): Registration[] {

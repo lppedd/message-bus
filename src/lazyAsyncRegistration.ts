@@ -1,4 +1,4 @@
-import { error } from "./errors";
+import { assert } from "./errors";
 import type { LazyAsyncSubscription } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
@@ -9,8 +9,8 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   private readonly myPromiseQueue: [(v: IteratorResult<unknown>) => void, (e?: any) => void][] = [];
   private readonly myRegistry: SubscriptionRegistry;
   private readonly myTopics: Topic[];
-  private isRegistered: boolean = false;
 
+  isActive: boolean = false;
   isDisposed: boolean = false;
   remaining: number;
   priority: number;
@@ -20,6 +20,10 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
     this.myTopics = topics;
     this.remaining = limit;
     this.priority = priority;
+
+    for (const topic of this.myTopics) {
+      this.myRegistry.set(topic, this);
+    }
   }
 
   handler = (data: unknown): void => {
@@ -41,16 +45,23 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   };
 
   dispose = (): void => {
+    if (this.isDisposed) {
+      return;
+    }
+
     this.isDisposed = true;
+    this.isActive = false;
 
     for (const topic of this.myTopics) {
-      this.myRegistry.delete(topic, this);
+      const result = this.myRegistry.delete(topic, this);
+      assert(result, "could not unregister as registration is missing");
     }
   };
 
   single = async (): Promise<unknown> => {
     const { done, value } = await this.next();
-    return !done ? value : error("the subscription is disposed");
+    assert(!done, "the subscription is disposed");
+    return value;
   };
 
   next = async (): Promise<IteratorResult<unknown>> => {
@@ -64,14 +75,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
       return { done: true, value: undefined };
     }
 
-    if (!this.isRegistered) {
-      this.isRegistered = true;
-
-      for (const topic of this.myTopics) {
-        this.myRegistry.set(topic, this);
-      }
-    }
-
+    this.isActive = true;
     return new Promise((resolve, reject) => this.myPromiseQueue.push([resolve, reject]));
   };
 
