@@ -43,8 +43,6 @@ export interface Topic<T = unknown> {
    *
    * Once the limit is reached, additional subscription attempts will
    * throw an error.
-   *
-   * @defaultValue Number.POSITIVE_INFINITY
    */
   readonly subscriptionLimit: number;
 
@@ -76,7 +74,12 @@ export type TopicOptions = {
   readonly broadcastDirection: BroadcastDirection;
 
   /**
-   * The maximum number of allowed subscriptions for the topic.
+   * The maximum number of subscriptions the topic allows, regardless of
+   * whether they are eager or lazy. Even an inactive lazy subscription
+   * counts toward this limit.
+   *
+   * Once the limit is reached, additional subscription attempts will
+   * throw an error.
    *
    * Must be greater than 0.
    *
