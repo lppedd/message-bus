@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 // @internal
 // noinspection JSUnusedGlobalSymbols
@@ -8,7 +8,8 @@ export default defineConfig({
       toFake: ["nextTick", "queueMicrotask"],
     },
     coverage: {
-      include: ["src/**.{js,ts}"],
+      all: false,
+      exclude: [...coverageConfigDefaults.exclude],
     },
   },
 });
