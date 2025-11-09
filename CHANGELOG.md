@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Added JSDoc to `MessageHandler` and `MessageListener`.
+
 ## 0.3.0
 
 - Introduced **multicast** and **unicast** topics for more precise subscription control.
