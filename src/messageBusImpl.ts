@@ -1,4 +1,4 @@
-import { assert, error, tag } from "./errors";
+import { assert, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type {
@@ -92,9 +92,10 @@ export class MessageBusImpl implements MessageBus {
     assert(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      if (topic.mode === "unicast" && this.hasSubscription(topic)) {
-        error(`${topic.toString()} allows only a single subscription`);
-      }
+      assert(
+        topic.mode === "multicast" || !this.hasSubscription(topic),
+        () => `${topic.toString()} allows only a single subscription`,
+      );
     }
 
     return handler
