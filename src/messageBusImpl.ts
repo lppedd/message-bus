@@ -188,7 +188,7 @@ export class MessageBusImpl implements MessageBus {
     }
 
     // Keep the type as for now we want to make sure we always deal with voids
-    const values: Promise<void>[] = registrations.map((registration) => {
+    const localResults: Promise<void>[] = registrations.map((registration) => {
       try {
         const result = registration.handler(data);
         return Promise.resolve(result);
@@ -199,7 +199,7 @@ export class MessageBusImpl implements MessageBus {
       }
     });
 
-    void Promise.allSettled(values).then((results) => {
+    void Promise.allSettled(localResults).then((results) => {
       const error = this.extractError(results);
 
       if (error !== undefined) {
