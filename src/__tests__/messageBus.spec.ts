@@ -1,7 +1,7 @@
 // noinspection JSUnusedLocalSymbols,JSUnusedGlobalSymbols
 /* eslint-disable @typescript-eslint/no-unused-vars,@typescript-eslint/no-unsafe-member-access */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 import { AutoSubscribe } from "../autoSubscribe";
 import { createMessageBus } from "../messageBus";
@@ -9,14 +9,19 @@ import { createTopic } from "../topic";
 
 describe("MessageBus", () => {
   let messageBus = createMessageBus();
+  let consoleErrorSpy: MockInstance<typeof console.error>;
+
   const TestTopic = createTopic<string>("Test");
 
   beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    consoleErrorSpy.mockRestore();
+
     messageBus.dispose();
     messageBus = createMessageBus();
   });
@@ -130,7 +135,7 @@ describe("MessageBus", () => {
     vi.runAllTimers();
   });
 
-  it("should intercept unhandled errors coming from multiple message handlers", () => {
+  it("should intercept unhandled errors coming from multiple message handlers", async () => {
     messageBus.subscribe(TestTopic, () => {
       throw new Error("error occurred in handler 1");
     });
@@ -140,23 +145,14 @@ describe("MessageBus", () => {
       throw new Error("async error occurred in handler 2");
     });
 
-    vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
-      expect(args).toHaveLength(2);
-      expect(args[0]).toBe("[message-bus] caught unhandled error from message handler.");
-
-      const arg1 = args[1];
-      expect(arg1).toBeInstanceOf(AggregateError);
-
-      const aggregateError = arg1 as AggregateError;
-      expect(String(aggregateError)).toBe("AggregateError: [message-bus] multiple message handler errors");
-      expect(aggregateError.errors).length(2);
-      expect(String(aggregateError.errors[0])).toBe("Error: error occurred in handler 1");
-      expect(String(aggregateError.errors[1])).toBe("Error: async error occurred in handler 2");
-    });
-
     // Should not let errors escape, but print to console.error instead
     messageBus.publish(TestTopic, "throws");
     vi.runAllTimers();
+
+    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2), 1000);
+    const msg = "[message-bus] caught unhandled error from message handler.";
+    expect(consoleErrorSpy).toHaveBeenNthCalledWith(1, msg, new Error("error occurred in handler 1"));
+    expect(consoleErrorSpy).toHaveBeenNthCalledWith(2, msg, new Error("async error occurred in handler 2"));
   });
 
   it("should propagate message to child buses (recursively)", () => {

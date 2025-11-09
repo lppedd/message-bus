@@ -198,28 +198,18 @@ export class MessageBusImpl implements MessageBus {
     });
 
     void Promise.allSettled(localResults).then((results) => {
-      const error = this.extractError(results);
+      const errors = this.extractErrors(results);
 
-      if (error !== undefined) {
+      for (const error of errors) {
         void this.myOptions.errorHandler(error);
       }
     });
   }
 
-  private extractError(results: PromiseSettledResult<void>[]): any {
-    const errors = results
+  private extractErrors(results: PromiseSettledResult<void>[]): unknown[] {
+    return results //
       .filter((r): r is PromiseRejectedResult => r.status === "rejected")
       .map((r) => r.reason);
-
-    if (errors.length === 0) {
-      return undefined;
-    }
-
-    if (errors.length === 1) {
-      return errors[0];
-    }
-
-    return new AggregateError(errors, tag("multiple message handler errors"));
   }
 
   private drainPublishQueue(): void {
