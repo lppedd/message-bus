@@ -22,7 +22,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
     this.priority = priority;
 
     for (const topic of this.myTopics) {
-      this.myRegistry.set(topic, this);
+      this.myRegistry.add(topic, this);
     }
   }
 
@@ -53,8 +53,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
     this.isActive = false;
 
     for (const topic of this.myTopics) {
-      const result = this.myRegistry.delete(topic, this);
-      assert(result, "could not unregister as registration is missing");
+      this.myRegistry.remove(topic, this);
     }
   };
 

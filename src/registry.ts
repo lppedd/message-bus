@@ -1,3 +1,4 @@
+import { assert, error } from "./errors";
 import type { MessageHandler, Subscription } from "./messageBus";
 import type { Topic } from "./topic";
 
@@ -20,44 +21,67 @@ export interface Registration extends Subscription {
 export class SubscriptionRegistry {
   private readonly myMap = new Map<Topic, Registration[]>();
 
+  /**
+   * All registrations in the registry, regardless of whether they are active.
+   */
+  get registrations(): Registration[] {
+    return Array.from(this.myMap.values()).flat();
+  }
+
+  /**
+   * Returns whether the registry contains any registrations for the specified topic,
+   * including inactive ones.
+   */
   has(topic: Topic): boolean {
     const registrations = this.myMap.get(topic);
     return !!registrations && registrations.length > 0;
   }
 
-  get(topic: Topic, activeOnly: boolean = false): Registration[] {
+  /**
+   * Returns registrations for the specified topic.
+   */
+  getAll(topic: Topic, activeOnly: boolean = false): Registration[] {
     const registrations = this.myMap.get(topic) ?? [];
     return activeOnly ? registrations.filter((r) => r.isActive) : [...registrations];
   }
 
-  set(topic: Topic, registration: Registration): void {
+  /**
+   * Adds a registration for the specified topic.
+   */
+  add(topic: Topic, registration: Registration): void {
     let registrations = this.myMap.get(topic);
 
     if (!registrations) {
       this.myMap.set(topic, (registrations = []));
     }
 
+    assert(!registrations.includes(registration), "duplicated registration");
     registrations.push(registration);
   }
 
-  delete(topic: Topic, registration: Registration): boolean {
+  /**
+   * Removes a registration for the specified topic.
+   *
+   * @returns `true` if the registration was removed, `false` otherwise
+   */
+  remove(topic: Topic, registration: Registration): void {
     const registrations = this.myMap.get(topic);
 
     if (registrations) {
       const index = registrations.indexOf(registration);
 
       if (index > -1) {
-        return registrations.splice(index, 1).length > 0;
+        registrations.splice(index, 1);
+        return;
       }
     }
 
-    return false;
+    error("missing registration");
   }
 
-  values(): Registration[] {
-    return Array.from(this.myMap.values()).flat();
-  }
-
+  /**
+   * Removes all registrations from the registry **without** disposing them.
+   */
   clear(): void {
     this.myMap.clear();
   }

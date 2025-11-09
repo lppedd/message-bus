@@ -1,4 +1,3 @@
-import { assert } from "./errors";
 import type { MessageHandler } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
@@ -29,7 +28,7 @@ export class HandlerRegistration implements Registration {
     this.priority = priority;
 
     for (const topic of this.myTopics) {
-      this.myRegistry.set(topic, this);
+      this.myRegistry.add(topic, this);
     }
   }
 
@@ -55,8 +54,7 @@ export class HandlerRegistration implements Registration {
     this.isActive = false;
 
     for (const topic of this.myTopics) {
-      const result = this.myRegistry.delete(topic, this);
-      assert(result, "could not unregister as registration is missing");
+      this.myRegistry.remove(topic, this);
     }
   };
 }

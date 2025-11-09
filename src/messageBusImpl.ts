@@ -134,7 +134,7 @@ export class MessageBusImpl implements MessageBus {
     this.myParent?.myChildren?.delete(this);
 
     // Dispose all registrations (a.k.a. subscriptions) created by this bus
-    for (const registration of this.myRegistry.values()) {
+    for (const registration of this.myRegistry.registrations) {
       registration.dispose();
     }
 
@@ -178,7 +178,7 @@ export class MessageBusImpl implements MessageBus {
 
     // Consider only active registrations.
     // In addition, sort them by priority: a lower priority value means being invoked first.
-    const registrations = this.myRegistry.get(topic, true).sort((a, b) => a.priority - b.priority);
+    const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
 
     if (listeners) {
       // Listeners are invoked in the order they have been added
