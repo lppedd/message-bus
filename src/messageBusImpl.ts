@@ -1,4 +1,4 @@
-import { assert, tag } from "./errors";
+import { assert, error, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type {
@@ -92,9 +92,9 @@ export class MessageBusImpl implements MessageBus {
     assert(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      const count = this.myRegistry.get(topic).length;
-      const limit = topic.subscriptionLimit;
-      assert(count < limit, `${topic.toString()} has reached its subscription limit (${limit})`);
+      if (topic.mode === "unicast" && this.myRegistry.get(topic).length > 0) {
+        error(`${topic.toString()} allows only a single subscription`);
+      }
     }
 
     return handler

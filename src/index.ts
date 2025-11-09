@@ -11,5 +11,5 @@ export type {
   SubscriptionBuilder,
 } from "./messageBus";
 export { createMessageBus } from "./messageBus";
-export type { BroadcastDirection, Topic, Topics } from "./topic";
+export type { Topic, TopicOptions, Topics, UnicastTopic, UnicastTopicOptions } from "./topic";
 export { createTopic } from "./topic";

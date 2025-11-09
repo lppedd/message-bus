@@ -1,24 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import type { Constructor } from "./contructor";
-import { assert, error } from "./errors";
+import { error } from "./errors";
 import { getMetadata } from "./metadata";
 import { defaultPriority } from "./registry";
 
 /**
- * The broadcasting direction for a topic.
- *
- * A message published to the topic will always be delivered first to handlers
- * registered on the bus where `publish()` is called.
- *
- * Then, if the direction is:
- * - `children`: the message is also propagated to all child buses recursively
- * - `parent`: the message is also propagated to the **immediate** parent bus
- */
-export type BroadcastDirection = "children" | "parent";
-
-/**
- * An identifier used to categorize messages in the message bus.
+ * A message topic to categorize messages in the message bus.
  */
 export interface Topic<T = unknown> {
   // Decorator's callable signature
@@ -30,21 +18,28 @@ export interface Topic<T = unknown> {
   readonly displayName: string;
 
   /**
-   * The broadcasting direction for the topic.
+   * Whether the topic allows multiple subscriptions or only a single subscription.
    *
-   * @see {@link BroadcastDirection}
+   * - `multicast`: the topic can have multiple subscribers
+   * - `unicast`: the topic can have at most one subscriber
+   *
+   * A topic is `multicast` by default.
    */
-  readonly broadcastDirection: BroadcastDirection;
+  readonly mode: "multicast" | "unicast";
 
   /**
-   * The maximum number of subscriptions the topic allows, regardless of
-   * whether they are eager or lazy. Even an inactive lazy subscription
-   * counts toward this limit.
+   * The broadcasting direction for a topic.
    *
-   * Once the limit is reached, additional subscription attempts will
-   * throw an error.
+   * A message published to the topic will always be delivered first to handlers
+   * registered on the bus where `publish()` is called.
+   *
+   * Then, if the direction is:
+   * - `children`: the message is also propagated to all child buses recursively
+   * - `parent`: the message is also propagated to the **immediate** parent bus
+   *
+   * A topic broadcasts to `children` by default.
    */
-  readonly subscriptionLimit: number;
+  readonly broadcastDirection: "children" | "parent";
 
   /**
    * Ensures that different Topic<T> types are not structurally compatible.
@@ -53,6 +48,13 @@ export interface Topic<T = unknown> {
    * @private
    */
   readonly __type?: T;
+}
+
+/**
+ * A specialized topic that allows only a single subscription.
+ */
+export interface UnicastTopic<T = unknown> extends Topic<T> {
+  readonly mode: "unicast";
 }
 
 /**
@@ -65,28 +67,53 @@ export type Topics<T extends [any, ...any[]]> = {
 /**
  * Topic behavior customizations.
  */
-export type TopicOptions = {
+export interface TopicOptions {
   /**
-   * The broadcasting direction for the topic.
+   * Whether the topic allows multiple subscriptions or only a single subscription.
+   *
+   * - `multicast`: the topic can have multiple subscribers
+   * - `unicast`: the topic can have at most one subscriber
+   *
+   * @defaultValue multicast
+   */
+  readonly mode: "multicast" | "unicast";
+
+  /**
+   * The broadcasting direction for a topic.
+   *
+   * A message published to the topic will always be delivered first to handlers
+   * registered on the bus where `publish()` is called.
+   *
+   * Then, if the direction is:
+   * - `children`: the message is also propagated to all child buses recursively
+   * - `parent`: the message is also propagated to the **immediate** parent bus
    *
    * @defaultValue children
    */
-  readonly broadcastDirection: BroadcastDirection;
+  readonly broadcastDirection: "children" | "parent";
+}
 
-  /**
-   * The maximum number of subscriptions the topic allows, regardless of
-   * whether they are eager or lazy. Even an inactive lazy subscription
-   * counts toward this limit.
-   *
-   * Once the limit is reached, additional subscription attempts will
-   * throw an error.
-   *
-   * Must be greater than 0.
-   *
-   * @defaultValue {@link Number.POSITIVE_INFINITY}
-   */
-  readonly subscriptionLimit: number;
-};
+/**
+ * Unicast topic behavior customizations.
+ */
+export interface UnicastTopicOptions extends TopicOptions {
+  readonly mode: "unicast";
+}
+
+/**
+ * Creates a new {@link UnicastTopic} that can be used to publish or subscribe to messages.
+ *
+ * @example
+ * ```ts
+ * const EnvTopic = createTopic<string>("Env", { mode: "unicast" });
+ * messageBus.subscribe(EnvTopic, (data) => console.log(data));
+ * messageBus.publish(EnvTopic, "production"); // => 'production' logged to the console
+ * ```
+ *
+ * @param displayName A human-readable name for the topic, useful for debugging and logging.
+ * @param options Optional topic behavior customizations.
+ */
+export function createTopic<T>(displayName: string, options: Partial<UnicastTopicOptions>): UnicastTopic<T>;
 
 /**
  * Creates a new {@link Topic} that can be used to publish or subscribe to messages.
@@ -101,27 +128,27 @@ export type TopicOptions = {
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
+export function createTopic<T>(displayName: string, options?: Partial<TopicOptions>): Topic<T>;
+
+// @internal
 export function createTopic<T>(displayName: string, options?: Partial<TopicOptions>): Topic<T> {
-  const topicDebugName = `Topic<${displayName}>`;
   const topicOptions: TopicOptions = {
+    mode: "multicast",
     broadcastDirection: "children",
-    subscriptionLimit: Number.POSITIVE_INFINITY,
     ...options,
   };
 
-  const limit = topicOptions.subscriptionLimit;
-  assert(limit > 0, `the topic subscription limit must be greater than 0, but is ${limit}`);
-
+  const topicName = `${topicOptions.mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
   const topic = (priority: number = defaultPriority): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
       if (propertyKey !== undefined && typeof target === "function") {
         const member = `${target.name}.${String(propertyKey)}`;
-        error(`decorator for ${topicDebugName} cannot be used on static member ${member}`);
+        error(`decorator for ${topicName} cannot be used on static member ${member}`);
       }
 
       if (propertyKey === undefined) {
-        error(`decorator for ${topicDebugName} cannot be used on ${target.name}'s constructor`);
+        error(`decorator for ${topicName} cannot be used on ${target.name}'s constructor`);
       }
 
       const metadata = getMetadata(target.constructor as Constructor<object>);
@@ -146,10 +173,10 @@ export function createTopic<T>(displayName: string, options?: Partial<TopicOptio
   };
 
   const writableTopic = topic as unknown as Writable<Topic<T>>;
-  writableTopic.displayName = topicDebugName;
+  writableTopic.displayName = topicName;
+  writableTopic.mode = topicOptions.mode;
   writableTopic.broadcastDirection = topicOptions.broadcastDirection;
-  writableTopic.subscriptionLimit = topicOptions.subscriptionLimit;
-  writableTopic.toString = () => topicDebugName;
+  writableTopic.toString = () => topicName;
 
   return writableTopic as Topic<T>;
 }

@@ -320,18 +320,16 @@ describe("MessageBus", () => {
     expect(listener).toHaveBeenCalledExactlyOnceWith(TestTopic, "one", 0);
   });
 
-  it("should respect the topic subscription limit", () => {
+  it("should respect the unicast topic subscription limit", () => {
     // No limit
     expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
     expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
     expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
 
-    // Max 2 subscriptions
-    const TopicWithLimit = createTopic("TopicWithLimit", { subscriptionLimit: 2 });
-    expect(() => messageBus.subscribe(TopicWithLimit)).not.toThrow();
-    expect(() => messageBus.subscribe(TopicWithLimit)).not.toThrow();
-    expect(() => messageBus.subscribe(TopicWithLimit)).toThrowErrorMatchingInlineSnapshot(
-      `[Error: [message-bus] Topic<TopicWithLimit> has reached its subscription limit (2)]`,
+    const UnicastTestTopic = createTopic("UnicastTest", { mode: "unicast" });
+    expect(() => messageBus.subscribe(UnicastTestTopic)).not.toThrow();
+    expect(() => messageBus.subscribe(UnicastTestTopic)).toThrowErrorMatchingInlineSnapshot(
+      `[Error: [message-bus] UnicastTopic<UnicastTest> allows only a single subscription]`,
     );
   });
 
