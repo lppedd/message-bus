@@ -193,8 +193,6 @@ export class MessageBusImpl implements MessageBus {
         const result = registration.handler(data);
         return Promise.resolve(result);
       } catch (e) {
-        // Suppress the ESLint rule as we just want to forward whatever error we get
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         return Promise.reject(e);
       }
     });
