@@ -1,4 +1,4 @@
-import { assert } from "./errors";
+import { check } from "./errors";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type { LazyAsyncSubscription, MessageHandler, Subscription, SubscriptionBuilder } from "./messageBus";
 import type { MessageBusImpl } from "./messageBusImpl";
@@ -18,7 +18,7 @@ export class SubscriptionBuilderImpl implements SubscriptionBuilder {
   }
 
   withLimit(limit: number): SubscriptionBuilder {
-    assert(limit > 0, "the limit value must be greater than 0");
+    check(limit > 0, "the limit value must be greater than 0");
     this.myLimit = limit;
     return this;
   }
@@ -41,7 +41,7 @@ export class SubscriptionBuilderImpl implements SubscriptionBuilder {
   subscribeOnce(topic: Topic[]): Promise<unknown>;
   subscribeOnce(topic: Topic[], handler: MessageHandler): Subscription;
   subscribeOnce(topic: Topic | Topic[], handler?: MessageHandler): Subscription | Promise<unknown> {
-    assert(this.myLimit === 1, "setting a limit is not supported with subscribeOnce");
+    check(this.myLimit === 1, "setting a limit is not supported with subscribeOnce");
     const subscription = this.myMessageBus.subscribeImpl(topic, handler, 1, defaultPriority);
     return subscription instanceof LazyAsyncRegistration
       ? subscription.single().finally(() => subscription.dispose())

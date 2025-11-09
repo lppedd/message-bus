@@ -1,5 +1,5 @@
 // @internal
-export function assert(condition: unknown, message: string | (() => string)): asserts condition {
+export function check(condition: unknown, message: string | (() => string)): asserts condition {
   if (!condition) {
     throw new Error(tag(typeof message === "string" ? message : message()));
   }

@@ -1,4 +1,4 @@
-import { assert, error } from "./errors";
+import { check, error } from "./errors";
 import type { MessageHandler, Subscription } from "./messageBus";
 import type { Topic } from "./topic";
 
@@ -55,7 +55,7 @@ export class SubscriptionRegistry {
       this.myMap.set(topic, (registrations = []));
     }
 
-    assert(!registrations.includes(registration), "duplicated registration");
+    check(!registrations.includes(registration), "duplicated registration");
     registrations.push(registration);
   }
 

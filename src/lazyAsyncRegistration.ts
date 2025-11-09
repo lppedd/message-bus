@@ -1,4 +1,4 @@
-import { assert } from "./errors";
+import { check } from "./errors";
 import type { LazyAsyncSubscription } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
@@ -59,7 +59,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
 
   single = async (): Promise<unknown> => {
     const { done, value } = await this.next();
-    assert(!done, "the subscription is disposed");
+    check(!done, "the subscription is disposed");
     return value;
   };
 

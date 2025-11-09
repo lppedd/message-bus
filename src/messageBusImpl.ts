@@ -1,4 +1,4 @@
-import { assert, tag } from "./errors";
+import { check, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type {
@@ -89,10 +89,10 @@ export class MessageBusImpl implements MessageBus {
   ): LazyAsyncRegistration | Subscription {
     this.checkDisposed();
     const topics = Array.isArray(topic) ? topic : [topic];
-    assert(topics.length > 0, "at least one topic must be provided for subscription");
+    check(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      assert(
+      check(
         topic.mode === "multicast" || !this.hasSubscription(topic),
         () => `${topic.toString()} allows only a single subscription`,
       );
@@ -105,7 +105,7 @@ export class MessageBusImpl implements MessageBus {
 
   withLimit(limit: number): SubscriptionBuilder {
     this.checkDisposed();
-    assert(limit > 0, "the limit value must be greater than 0");
+    check(limit > 0, "the limit value must be greater than 0");
     return new SubscriptionBuilderImpl(this, limit, defaultPriority);
   }
 
@@ -255,6 +255,6 @@ export class MessageBusImpl implements MessageBus {
   }
 
   private checkDisposed(): void {
-    assert(!this.myDisposed, "the message bus is disposed");
+    check(!this.myDisposed, "the message bus is disposed");
   }
 }
