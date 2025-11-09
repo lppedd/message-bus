@@ -176,29 +176,52 @@ export class MessageBusImpl implements MessageBus {
       }
     }
 
-    // We must consider only active registrations
-    const registrations = this.myRegistry.get(topic, true);
-    const registrationCount = registrations?.length ?? 0;
+    // Consider only active registrations.
+    // In addition, sort them by priority: a lower priority value means being invoked first.
+    const registrations = this.myRegistry.get(topic, true).sort((a, b) => a.priority - b.priority);
 
     if (listeners) {
       // Listeners are invoked in the order they have been added
       for (const listener of this.myListeners) {
-        listener(topic, data, registrationCount);
+        listener(topic, data, registrations.length);
       }
     }
 
-    if (registrations && registrationCount > 0) {
-      // Sort registrations by priority. A lower priority value means being invoked first.
-      registrations.sort((a, b) => a.priority - b.priority);
-
-      for (const registration of registrations) {
-        try {
-          registration.handler(data);
-        } catch (e) {
-          void this.myOptions.errorHandler(e);
-        }
+    // Keep the type as for now we want to make sure we always deal with voids
+    const values: Promise<void>[] = registrations.map((registration) => {
+      try {
+        const result = registration.handler(data);
+        return Promise.resolve(result);
+      } catch (e) {
+        // Suppress the ESLint rule as we just want to forward whatever error we get
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        return Promise.reject(e);
       }
+    });
+
+    void Promise.allSettled(values).then((results) => {
+      const error = this.extractError(results);
+
+      if (error !== undefined) {
+        void this.myOptions.errorHandler(error);
+      }
+    });
+  }
+
+  private extractError(results: PromiseSettledResult<void>[]): any {
+    const errors = results
+      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+      .map((r) => r.reason);
+
+    if (errors.length === 0) {
+      return undefined;
     }
+
+    if (errors.length === 1) {
+      return errors[0];
+    }
+
+    return new AggregateError(errors, tag("multiple message handler errors"));
   }
 
   private drainPublishQueue(): void {

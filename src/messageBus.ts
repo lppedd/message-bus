@@ -55,8 +55,8 @@ export interface LazyAsyncSubscription<T = unknown> extends AsyncIterableIterato
   readonly single: () => Promise<T>;
 }
 
-export type MessageHandler<T = unknown> = (data: T) => void;
-export type MessageListener = (topic: Topic, data: unknown, subscriberCount: number) => void;
+export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
+export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void;
 
 /**
  * Allows creating customized subscriptions.

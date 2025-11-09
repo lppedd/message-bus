@@ -114,19 +114,48 @@ describe("MessageBus", () => {
     );
   });
 
-  it("should intercept unhandled errors coming from message handlers", () => {
+  it("should intercept unhandled error coming from a message handler", () => {
     messageBus.subscribe(TestTopic, () => {
-      throw new Error("some error occurred");
+      throw new Error("error occurred in handler");
     });
 
     vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
       expect(args).toHaveLength(2);
       expect(args[0]).toBe("[message-bus] caught unhandled error from message handler.");
-      expect(String(args[1])).toBe("Error: some error occurred");
+      expect(String(args[1])).toBe("Error: error occurred in handler");
     });
 
     // Should not let errors escape, but print to console.error instead
-    messageBus.publish(TestTopic, "it works");
+    messageBus.publish(TestTopic, "throws");
+    vi.runAllTimers();
+  });
+
+  it("should intercept unhandled errors coming from multiple message handlers", () => {
+    messageBus.subscribe(TestTopic, () => {
+      throw new Error("error occurred in handler 1");
+    });
+
+    messageBus.subscribe(TestTopic, async () => {
+      await new Promise((r) => setTimeout(r, 1));
+      throw new Error("async error occurred in handler 2");
+    });
+
+    vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
+      expect(args).toHaveLength(2);
+      expect(args[0]).toBe("[message-bus] caught unhandled error from message handler.");
+
+      const arg1 = args[1];
+      expect(arg1).toBeInstanceOf(AggregateError);
+
+      const aggregateError = arg1 as AggregateError;
+      expect(String(aggregateError)).toBe("AggregateError: [message-bus] multiple message handler errors");
+      expect(aggregateError.errors).length(2);
+      expect(String(aggregateError.errors[0])).toBe("Error: error occurred in handler 1");
+      expect(String(aggregateError.errors[1])).toBe("Error: async error occurred in handler 2");
+    });
+
+    // Should not let errors escape, but print to console.error instead
+    messageBus.publish(TestTopic, "throws");
     vi.runAllTimers();
   });
 

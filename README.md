@@ -344,13 +344,14 @@ bus.withLimit(2).withPriority(0).subscribe(CommandTopic, (command) => {
 
 In addition to subscribing to specific topics, you can also listen to all messages
 published on the bus, regardless of topic. Listeners are invoked before any topic-specific
-subscribers, and they are notified for every message, even if no topic subscriptions exist.
+subscribers, and they are notified for every message, even if no topic subscriptions
+(whether active or inactive) exist.
 
 This might be useful for logging, analytics, or debugging.
 
 ```ts
-const listener: MessageListener = (topic, data, subscriberCount) => {
-  console.log(`Message published to ${topic} with ${subscriberCount} subscribers: ${data}`);
+const listener: MessageListener = (topic, data, activeSubscriptions) => {
+  console.log(`Message published to ${topic} with ${activeSubscriptions} subscribers: ${data}`);
 };
 
 // Add the listener
