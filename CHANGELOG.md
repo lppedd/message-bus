@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+- Enforced that only a single `UnicastTopic` subscription can exist across a message bus hierarchy.
+- Forwarded each caught message handler error individually to `MessageBusOptions.errorHandler`,
+  instead of aggregating multiple errors into one.
+- Refactored the machinery's internals to improve its reliability.
+
 ## 0.3.1
 
 - Added JSDoc to `MessageHandler` and `MessageListener`.
