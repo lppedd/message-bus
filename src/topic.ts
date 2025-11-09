@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import type { Constructor } from "./contructor";
-import { error } from "./errors";
+import { check } from "./errors";
 import { getMetadata } from "./metadata";
 import { defaultPriority } from "./registry";
 
@@ -147,23 +147,23 @@ export function createTopic<T>(displayName: string, options?: Partial<TopicOptio
   const topic = (priority: number = defaultPriority): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
-      if (propertyKey !== undefined && typeof target === "function") {
+      check(propertyKey === undefined || typeof target !== "function", () => {
         const member = `${target.name}.${String(propertyKey)}`;
-        error(`decorator for ${topicName} cannot be used on static member ${member}`);
-      }
+        return `decorator for ${topicName} cannot be used on static member ${member}`;
+      });
 
-      if (propertyKey === undefined) {
-        error(`decorator for ${topicName} cannot be used on ${target.name}'s constructor`);
-      }
+      check(propertyKey !== undefined, () => {
+        return `decorator for ${topicName} cannot be used on ${target.name}'s constructor`;
+      });
 
       const metadata = getMetadata(target.constructor as Constructor<object>);
       const methods = metadata.subscriptions.methods;
       const methodSub = methods.get(propertyKey);
 
-      if (methodSub) {
+      check(!methodSub, () => {
         const member = `${target.constructor.name}.${String(propertyKey)}`;
-        error(`only a single topic subscription is allowed on ${member}`);
-      }
+        return `only a single topic subscription is allowed on ${member}`;
+      });
 
       methods.set(propertyKey, {
         topic: topic as unknown as Topic<T>,

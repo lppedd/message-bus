@@ -92,10 +92,9 @@ export class MessageBusImpl implements MessageBus {
     check(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      check(
-        topic.mode === "multicast" || !this.hasSubscription(topic),
-        () => `${topic.toString()} allows only a single subscription`,
-      );
+      check(topic.mode === "multicast" || !this.hasSubscription(topic), () => {
+        return `${topic.toString()} allows only a single subscription`;
+      });
     }
 
     return handler
@@ -105,7 +104,7 @@ export class MessageBusImpl implements MessageBus {
 
   withLimit(limit: number): SubscriptionBuilder {
     this.checkDisposed();
-    check(limit > 0, "the limit value must be greater than 0");
+    check(limit > 0, () => `the limit value must be greater than 0, but is ${limit}`);
     return new SubscriptionBuilderImpl(this, limit, defaultPriority);
   }
 

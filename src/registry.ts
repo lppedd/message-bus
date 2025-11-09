@@ -1,4 +1,4 @@
-import { check, error } from "./errors";
+import { check } from "./errors";
 import type { MessageHandler, Subscription } from "./messageBus";
 import type { Topic } from "./topic";
 
@@ -76,7 +76,7 @@ export class SubscriptionRegistry {
       }
     }
 
-    error("missing registration");
+    check(false, "missing registration");
   }
 
   /**

@@ -18,7 +18,7 @@ export class SubscriptionBuilderImpl implements SubscriptionBuilder {
   }
 
   withLimit(limit: number): SubscriptionBuilder {
-    check(limit > 0, "the limit value must be greater than 0");
+    check(limit > 0, () => `the limit value must be greater than 0, but is ${limit}`);
     this.myLimit = limit;
     return this;
   }
