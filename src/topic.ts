@@ -6,12 +6,16 @@ import { getMetadata } from "./metadata";
 import { defaultPriority } from "./registry";
 
 /**
+ * A callable interface to allow using {@link Topic} as a parameter decorator.
+ */
+export interface TopicDecorator {
+  (priority?: number): ParameterDecorator;
+}
+
+/**
  * A message topic to categorize messages in the message bus.
  */
-export interface Topic<T = unknown> {
-  // Decorator's callable signature
-  (priority?: number): ParameterDecorator;
-
+export interface Topic<T = unknown> extends TopicDecorator {
   /**
    * A human-readable name for the topic, useful for debugging and logging.
    */
@@ -81,7 +85,7 @@ export interface TopicOptions {
    *
    * @defaultValue multicast
    */
-  readonly mode: "multicast" | "unicast";
+  readonly mode?: "multicast" | "unicast";
 
   /**
    * The broadcasting direction for a topic.
@@ -95,7 +99,7 @@ export interface TopicOptions {
    *
    * @defaultValue children
    */
-  readonly broadcastDirection: "children" | "parent";
+  readonly broadcastDirection?: "children" | "parent";
 }
 
 /**
@@ -118,7 +122,7 @@ export interface UnicastTopicOptions extends TopicOptions {
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T>(displayName: string, options: Partial<UnicastTopicOptions>): UnicastTopic<T>;
+export function createTopic<T>(displayName: string, options: UnicastTopicOptions): UnicastTopic<T>;
 
 /**
  * Creates a new {@link Topic} that can be used to publish or subscribe to messages.
@@ -133,11 +137,11 @@ export function createTopic<T>(displayName: string, options: Partial<UnicastTopi
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T>(displayName: string, options?: Partial<TopicOptions>): Topic<T>;
+export function createTopic<T>(displayName: string, options?: TopicOptions): Topic<T>;
 
 // @internal
-export function createTopic<T>(displayName: string, options?: Partial<TopicOptions>): Topic<T> {
-  const topicOptions: TopicOptions = {
+export function createTopic<T>(displayName: string, options?: TopicOptions): Topic<T> {
+  const topicOptions: Required<TopicOptions> = {
     mode: "multicast",
     broadcastDirection: "children",
     ...options,
