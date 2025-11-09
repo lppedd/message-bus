@@ -226,7 +226,7 @@ The asynchronous alternative to `bus.subscribeOnce(topic, handler)` is:
 const command = await bus.subscribeOnce(CommandTopic); // Promise<string>
 ```
 
-> [!TIP]
+> [!TIP]  
 > If you are only interested in a single message, prefer using `subscribeOnce(Topic)`
 > over `subscribe(Topic) + subscription.single()`. This avoids the need to manually
 > dispose the subscription.
@@ -257,7 +257,7 @@ export class CommandProcessor {
 This automatically subscribes the `onCommand` method to `CommandTopic`,
 and unsubscribes it when the instance is garbage-collected.
 
-> [!NOTE]
+> [!NOTE]  
 > The class must be instantiated, either manually or via a third-party mechanism,
 > for the subscription to be activated. Decorating the class alone does not trigger
 > any subscriptions.
@@ -281,7 +281,7 @@ export class CommandProcessor {
 }
 ```
 
-> [!NOTE]
+> [!NOTE]  
 > Only one `Subscription` parameter is allowed per method, and it must follow the topic parameter.
 
 ## Subscription options
@@ -312,7 +312,7 @@ for await (const command of bus.withLimit(3).subscribe(CommandTopic)) {
 If fewer than `limit` messages are published, the subscription simply remains idle
 unless manually disposed.
 
-> [!NOTE]
+> [!NOTE]  
 > `withLimit` returns a subscription builder, not the message bus itself.  
 > This builder allows fluently applying options before finalizing the subscription.
 
@@ -361,9 +361,10 @@ bus.addListener(listener);
 bus.removeListener(listener);
 ```
 
-**Important**: listeners only run on the bus where the message is initially published.
-If the message propagates to child buses (the default behavior), or to the parent bus,
-listeners added to those buses will not be called.
+> [!IMPORTANT]  
+> Listeners only run on the bus where the message is initially published.
+> If the message propagates to child buses (the default behavior), or to the parent bus,
+> listeners added to those buses will not be called.
 
 ## License
 
