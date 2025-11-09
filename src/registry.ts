@@ -20,6 +20,11 @@ export interface Registration extends Subscription {
 export class SubscriptionRegistry {
   private readonly myMap = new Map<Topic, Registration[]>();
 
+  has(topic: Topic): boolean {
+    const registrations = this.myMap.get(topic);
+    return !!registrations && registrations.length > 0;
+  }
+
   get(topic: Topic, activeOnly: boolean = false): Registration[] {
     const registrations = this.myMap.get(topic) ?? [];
     return activeOnly ? registrations.filter((r) => r.isActive) : [...registrations];

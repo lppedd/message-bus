@@ -51,7 +51,12 @@ export interface Topic<T = unknown> {
 }
 
 /**
- * A specialized topic that allows only a single subscription.
+ * A specialized topic that allows only a single subscription **per message bus hierarchy**.
+ *
+ * Once a subscription exists anywhere in the hierarchy (root bus and all its children),
+ * attempting to subscribe again for the same topic will throw an error.
+ *
+ * Separate message bus hierarchies can each have their own subscription.
  */
 export interface UnicastTopic<T = unknown> extends Topic<T> {
   readonly mode: "unicast";

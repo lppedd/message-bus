@@ -92,7 +92,7 @@ export class MessageBusImpl implements MessageBus {
     assert(topics.length > 0, "at least one topic must be provided for subscription");
 
     for (const topic of topics) {
-      if (topic.mode === "unicast" && this.myRegistry.get(topic).length > 0) {
+      if (topic.mode === "unicast" && this.hasSubscription(topic)) {
         error(`${topic.toString()} allows only a single subscription`);
       }
     }
@@ -221,6 +221,36 @@ export class MessageBusImpl implements MessageBus {
     }
 
     this.myPublishing = false;
+  }
+
+  // Scan the entire message bus tree using a BFS with a stack
+  private hasSubscription(topic: Topic): boolean {
+    const stack = [this.getRootBus()];
+
+    do {
+      const bus = stack.pop()!;
+
+      if (bus.myRegistry.has(topic)) {
+        return true;
+      }
+
+      for (const child of bus.myChildren) {
+        stack.push(child);
+      }
+    } while (stack.length > 0);
+
+    return false;
+  }
+
+  private getRootBus(): MessageBusImpl {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let root: MessageBusImpl = this;
+
+    while (root.myParent) {
+      root = root.myParent;
+    }
+
+    return root;
   }
 
   private checkDisposed(): void {
