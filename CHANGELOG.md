@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Introduced **multicast** and **unicast** topics for more precise subscription control.
+- Added support for asynchronous message handlers.
+- Unified error handling via `MessageBusOptions.errorHandler`.  
+  All errors thrown from message handlers are now forwarded to the `errorHandler`.
+
 ## 0.2.0
 
 - Enabled subscribing to multiple topics in a single call while preserving type safety.
