@@ -1,6 +1,42 @@
 import { MessageBusImpl } from "./messageBusImpl";
 import type { Topic, Topics } from "./topic";
 
+/**
+ * A function that handles messages published to a specific {@link Topic}.
+ *
+ * Message handlers are registered using {@link MessageBus.subscribe} or {@link MessageBus.subscribeOnce}.
+ * They are invoked whenever a message is published to the corresponding topic.
+ *
+ * @param data The payload sent with the topic message.
+ *
+ * @example
+ * ```ts
+ * bus.subscribe(UserCreatedTopic, async (user) => {
+ *   await sendWelcomeEmail(user);
+ * });
+ * ```
+ */
+export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
+
+/**
+ * A listener function that observes all messages being published through a {@link MessageBus},
+ * regardless of the topic.
+ *
+ * Message listeners are registered using {@link MessageBus.addListener}.
+ *
+ * @param topic The {@link Topic} to which the message was published.
+ * @param data The payload associated with the topic message.
+ * @param activeSubscriptions The number of active subscriptions for the topic at the time of publication.
+ *
+ * @example
+ * ```ts
+ * bus.addListener((topic, data, activeSubscriptions) => {
+ *   console.debug(`Published to ${topic.toString()} (${activeSubscriptions} subscribers)`, data);
+ * });
+ * ```
+ */
+export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void;
+
 export interface MessageBusOptions {
   /**
    * A handler for errors thrown from message handlers.
@@ -54,9 +90,6 @@ export interface LazyAsyncSubscription<T = unknown> extends AsyncIterableIterato
    */
   readonly single: () => Promise<T>;
 }
-
-export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
-export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void;
 
 /**
  * Allows creating customized subscriptions.
