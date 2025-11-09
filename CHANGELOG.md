@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- Improved type inference for `UnicastTopic`s.  
+  TypeScript correctly infers `UnicastTopic` **only** when `mode: "unicast"` is specified.
+
 ## 0.3.2
 
 - Enforced that only a single `UnicastTopic` subscription can exist across a message bus hierarchy.
