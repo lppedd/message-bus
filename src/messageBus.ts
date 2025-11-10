@@ -45,7 +45,7 @@ export interface MessageBusOptions {
    *
    * @defaultValue (e) => console.error(e)
    */
-  readonly errorHandler: (e: unknown) => void | Promise<void>;
+  readonly errorHandler?: (e: unknown) => void | Promise<void>;
 }
 
 export interface ChildMessageBusOptions extends MessageBusOptions {
@@ -54,7 +54,7 @@ export interface ChildMessageBusOptions extends MessageBusOptions {
    *
    * @defaultValue true
    */
-  readonly copyListeners: boolean;
+  readonly copyListeners?: boolean;
 }
 
 /**
@@ -228,7 +228,7 @@ export interface MessageBus {
    *
    * Messages with `children` broadcast direction will be propagated to it.
    */
-  createChildBus(options?: Partial<ChildMessageBusOptions>): MessageBus;
+  createChildBus(options?: ChildMessageBusOptions): MessageBus;
 
   /**
    * Publishes a new message without any associated data to the specified topic.
@@ -406,6 +406,6 @@ export interface MessageBus {
 /**
  * Creates a new message bus.
  */
-export function createMessageBus(options?: Partial<MessageBusOptions>): MessageBus {
+export function createMessageBus(options?: MessageBusOptions): MessageBus {
   return new MessageBusImpl(undefined, undefined, options);
 }

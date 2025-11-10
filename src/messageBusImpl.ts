@@ -18,7 +18,7 @@ import type { Topic } from "./topic";
 // @internal
 export class MessageBusImpl implements MessageBus {
   private readonly myParent?: MessageBusImpl;
-  private readonly myOptions: MessageBusOptions;
+  private readonly myOptions: Required<MessageBusOptions>;
   private readonly myListeners: Set<MessageListener>;
   private readonly myRegistry = new SubscriptionRegistry();
   private readonly myChildren = new Set<MessageBusImpl>();
@@ -27,16 +27,16 @@ export class MessageBusImpl implements MessageBus {
   private myPublishing: boolean = false;
   private myDisposed: boolean = false;
 
-  constructor(
-    parent?: MessageBusImpl,
-    listeners?: Set<MessageListener>,
-    options?: Partial<MessageBusOptions>,
-  ) {
+  constructor(parent?: MessageBusImpl, listeners?: Set<MessageListener>, options?: MessageBusOptions) {
     this.myParent = parent;
     this.myListeners = listeners ?? new Set();
+
+    const consoleHandler = (e: unknown): void => {
+      console.error(tag("caught unhandled error from message handler."), e);
+    };
+
     this.myOptions = {
-      errorHandler: (e) => console.error(tag("caught unhandled error from message handler."), e),
-      ...options,
+      errorHandler: options?.errorHandler ?? consoleHandler,
     };
   }
 
@@ -44,13 +44,12 @@ export class MessageBusImpl implements MessageBus {
     return this.myDisposed;
   }
 
-  createChildBus(options?: Partial<ChildMessageBusOptions>): MessageBus {
+  createChildBus(options?: ChildMessageBusOptions): MessageBus {
     this.checkDisposed();
 
     const listeners = options?.copyListeners === false ? undefined : new Set(this.myListeners);
     const childBus = new MessageBusImpl(this, listeners, {
-      ...this.myOptions,
-      ...options,
+      errorHandler: options?.errorHandler ?? this.myOptions.errorHandler,
     });
 
     this.myChildren.add(childBus);

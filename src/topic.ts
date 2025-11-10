@@ -142,9 +142,8 @@ export function createTopic<T>(displayName: string, options?: TopicOptions): Top
 // @internal
 export function createTopic<T>(displayName: string, options?: TopicOptions): Topic<T> {
   const topicOptions: Required<TopicOptions> = {
-    mode: "multicast",
-    broadcastDirection: "children",
-    ...options,
+    mode: options?.mode ?? "multicast",
+    broadcastDirection: options?.broadcastDirection ?? "children",
   };
 
   const topicName = `${topicOptions.mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
