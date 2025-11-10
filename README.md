@@ -25,8 +25,8 @@
 - [Subscribing to topics](#subscribing-to-topics)
   - [Single message subscription](#single-message-subscription)
   - [Multiple topic subscription](#multiple-topic-subscription)
-- [Asynchronous subscription](#asynchronous-subscription-)
-  - [Asynchronous single message subscription](#asynchronous-single-message-subscription)
+- [Async subscription](#async-subscription-)
+  - [Async single message subscription](#async-single-message-subscription)
 - [Decorator-based subscription](#decorator-based-subscription)
   - [Unsubscribing programmatically](#unsubscribing-programmatically)
 - [Subscription options](#subscription-options)
@@ -187,7 +187,7 @@ The `data` parameter is automatically inferred as `string | number`, based on th
 of all topic types. This pattern is useful when the same logic should apply to multiple
 related message types.
 
-## Asynchronous subscription ⚡
+## Async subscription ⚡
 
 An alternative way to subscribe to a topic is using async iterations:
 
@@ -218,7 +218,7 @@ ends, whether normally or due to a `break`, a `return`, or an error.
 If you use `single()` and no longer need the subscription afterward, remember to
 dispose it manually with `subscription.dispose()`.
 
-### Asynchronous single message subscription
+### Async single message subscription
 
 The asynchronous alternative to `bus.subscribeOnce(topic, handler)` is:
 
@@ -228,7 +228,7 @@ const command = await bus.subscribeOnce(CommandTopic); // Promise<string>
 
 > [!TIP]  
 > If you are only interested in a single message, prefer using `subscribeOnce(Topic)`
-> over `subscribe(Topic) + subscription.single()`. This avoids the need to manually
+> over `subscribe(Topic)` + `subscription.single()`. This avoids the need to manually
 > dispose the subscription.
 
 ## Decorator-based subscription
