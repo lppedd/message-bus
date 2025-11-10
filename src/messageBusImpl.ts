@@ -15,6 +15,13 @@ import { defaultLimit, defaultPriority, SubscriptionRegistry } from "./registry"
 import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
 import type { Topic } from "./topic";
 
+type Message = {
+  readonly topic: Topic;
+  readonly data: unknown;
+  readonly broadcast?: boolean;
+  readonly listeners?: boolean;
+};
+
 // @internal
 export class MessageBusImpl implements MessageBus {
   private readonly myParent?: MessageBusImpl;
@@ -57,7 +64,7 @@ export class MessageBusImpl implements MessageBus {
   }
 
   publish(topic: Topic, data?: unknown): void {
-    this.publishImpl(topic, data, true, true);
+    this.enqueueMessage({ topic, data, broadcast: true, listeners: true });
   }
 
   subscribe(topic: Topic): LazyAsyncSubscription;
@@ -148,9 +155,9 @@ export class MessageBusImpl implements MessageBus {
     this.myChildren.clear();
   }
 
-  private publishImpl(topic: Topic, data: unknown, broadcast: boolean, listeners: boolean): void {
+  private enqueueMessage(message: Message): void {
     this.checkDisposed();
-    this.myPublishQueue.push(() => this.publishMessage(topic, data, broadcast, listeners));
+    this.myPublishQueue.push(() => this.publishMessage(message));
 
     if (!this.myPublishing) {
       this.myPublishing = true;
@@ -158,7 +165,7 @@ export class MessageBusImpl implements MessageBus {
     }
   }
 
-  private publishMessage(topic: Topic, data: unknown, broadcast: boolean, listeners: boolean): void {
+  private publishMessage({ topic, data, broadcast, listeners }: Message): void {
     // Consider only active registrations.
     // In addition, sort them by priority: a lower priority value means being invoked first.
     const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
@@ -179,16 +186,12 @@ export class MessageBusImpl implements MessageBus {
     // or the parent bus depending on the broadcasting direction,
     // will receive the message after this bus
     if (broadcast) {
-      switch (topic.broadcastDirection) {
-        case "children":
-          for (const child of this.myChildren) {
-            child.publishImpl(topic, data, true, false);
-          }
-
-          break;
-        case "parent":
-          this.myParent?.publishImpl(topic, data, false, false);
-          break;
+      if (topic.broadcastDirection === "children") {
+        for (const child of this.myChildren) {
+          child.enqueueMessage({ topic, data, broadcast: true });
+        }
+      } else if (this.myParent) {
+        this.myParent.enqueueMessage({ topic, data });
       }
     }
 
