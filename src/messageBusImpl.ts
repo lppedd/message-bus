@@ -28,6 +28,8 @@ type MessageResult = {
   readonly errors: unknown[];
 };
 
+const Skip: unique symbol = Symbol.for("@lppedd/message-bus/Symbol/Skip");
+
 // @internal
 export class MessageBusImpl implements MessageBus {
   private readonly myParent?: MessageBusImpl;
@@ -238,7 +240,8 @@ export class MessageBusImpl implements MessageBus {
           return Promise.reject(e);
         }
 
-        return this.handleError(e);
+        this.handleError(e);
+        return Skip;
       }
     });
 
@@ -250,7 +253,7 @@ export class MessageBusImpl implements MessageBus {
       });
     }
 
-    const result = Promise.allSettled(values.filter((v) => !!v)).then((results): MessageResult => {
+    const result = Promise.allSettled(values.filter((v) => v !== Skip)).then((results): MessageResult => {
       const values: unknown[] = [];
       const errors: unknown[] = [];
 
