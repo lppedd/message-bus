@@ -158,6 +158,17 @@ export class MessageBusImpl implements MessageBus {
   }
 
   private publishMessage(topic: Topic, data: unknown, broadcast: boolean, listeners: boolean): void {
+    // Consider only active registrations.
+    // In addition, sort them by priority: a lower priority value means being invoked first.
+    const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
+
+    if (listeners) {
+      // Listeners are invoked in the order they have been added
+      for (const listener of this.myListeners) {
+        void listener(topic, data, registrations.length);
+      }
+    }
+
     // Keep in mind that publish() will queue the task, so child buses,
     // or the parent bus depending on the broadcasting direction,
     // will receive the message after this bus
@@ -172,17 +183,6 @@ export class MessageBusImpl implements MessageBus {
         case "parent":
           this.myParent?.publishImpl(topic, data, false, false);
           break;
-      }
-    }
-
-    // Consider only active registrations.
-    // In addition, sort them by priority: a lower priority value means being invoked first.
-    const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
-
-    if (listeners) {
-      // Listeners are invoked in the order they have been added
-      for (const listener of this.myListeners) {
-        void listener(topic, data, registrations.length);
       }
     }
 
