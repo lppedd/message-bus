@@ -208,10 +208,7 @@ export interface SubscriptionBuilder {
    * @param handler A callback invoked on the next topic message.
    */
   subscribeOnce<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
-  subscribeOnce<T extends [any, ...any[]]>(
-    topics: Topics<T>,
-    handler: MessageHandler<T[number]>,
-  ): Subscription;
+  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 }
 
 /**
@@ -352,10 +349,7 @@ export interface MessageBus {
    * @param handler A callback invoked on the next topic message.
    */
   subscribeOnce<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
-  subscribeOnce<T extends [any, ...any[]]>(
-    topics: Topics<T>,
-    handler: MessageHandler<T[number]>,
-  ): Subscription;
+  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 
   /**
    * Sets the maximum number of messages to receive for the next subscription.
