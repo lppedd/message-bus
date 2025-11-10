@@ -1,5 +1,5 @@
 import { MessageBusImpl } from "./messageBusImpl";
-import type { Topic, Topics } from "./topic";
+import type { Topic, Topics, UnicastTopic } from "./topic";
 
 /**
  * A function that handles messages published to a specific {@link Topic}.
@@ -7,16 +7,22 @@ import type { Topic, Topics } from "./topic";
  * Message handlers are registered using {@link MessageBus.subscribe} or {@link MessageBus.subscribeOnce}.
  * They are invoked whenever a message is published to the corresponding topic.
  *
- * @param data The payload sent with the topic message.
- *
  * @example
  * ```ts
  * bus.subscribe(UserCreatedTopic, async (user) => {
  *   await sendWelcomeEmail(user);
  * });
  * ```
+ *
+ * @param data The payload sent with the topic message.
+ * @returns The handler's result, which may be returned synchronously or as a Promise.
+ *  Defaults to `void`, which means nothing is returned.
+ *
+ * @template T The type of the payload data received by the handler.
+ * @template R The type of the value returned by the handler.
+ *   Defaults to `void`, which means nothing is returned.
  */
-export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
+export type MessageHandler<T = unknown, R = void> = (data: T) => R | Promise<R>;
 
 /**
  * A listener function that observes all messages being published through a {@link MessageBus},
@@ -24,16 +30,16 @@ export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
  *
  * Message listeners are registered using {@link MessageBus.addListener}.
  *
- * @param topic The {@link Topic} to which the message was published.
- * @param data The payload associated with the topic message.
- * @param activeSubscriptions The number of active subscriptions for the topic at the time of publication.
- *
  * @example
  * ```ts
  * bus.addListener((topic, data, activeSubscriptions) => {
  *   console.debug(`Published to ${topic.toString()} (${activeSubscriptions} subscribers)`, data);
  * });
  * ```
+ *
+ * @param topic The {@link Topic} to which the message was published.
+ * @param data The payload associated with the topic message.
+ * @param activeSubscriptions The number of active subscriptions for the topic at the time of publication.
  */
 export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void | Promise<void>;
 
@@ -170,7 +176,7 @@ export interface SubscriptionBuilder {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on each topic message.
    */
-  subscribe<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
+  subscribe<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
   subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 
   /**
@@ -207,7 +213,7 @@ export interface SubscriptionBuilder {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on the next topic message.
    */
-  subscribeOnce<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
+  subscribeOnce<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
   subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 }
 
@@ -251,6 +257,66 @@ export interface MessageBus {
    * @param data The data payload to send with the message.
    */
   publish<T>(topic: Topic<T>, data: T): void;
+
+  /**
+   * Asynchronously publishes a new message without any associated data
+   * to the specified topic and waits for all subscribed handlers to complete.
+   *
+   * The returned Promise resolves once all subscribed handlers have completed:
+   * - For `unicast` topics, it resolves to the single handler's result.
+   * - For `multicast` topics, it resolves to an array of all handler results.
+   *
+   * If one or more handlers throw, the Promise is rejected:
+   * - With the original error if a single handler failed.
+   * - With an `AggregateError` containing all errors if multiple handlers failed.
+   *
+   * @example
+   * ```ts
+   * // UnicastTopic
+   * const user = await bus.publishAsync(UserTopic);
+   *
+   * // Topic
+   * const statuses = await bus.publishAsync(ServiceStatusTopic);
+   * console.log("All service statuses", statuses);
+   * ```
+   *
+   * @param topic The topic to publish the message to.
+   * @returns A promise that resolves with the handler result(s),
+   *   or rejects if any handler throws.
+   */
+  publishAsync<R>(topic: UnicastTopic<void, R>): Promise<R>;
+  publishAsync<R>(topic: Topic<void, R>): Promise<R[]>;
+
+  /**
+   * Asynchronously publishes a new message with associated data
+   * to the specified topic and waits for all subscribed handlers to complete.
+   *
+   * The returned Promise resolves once all subscribed handlers have completed:
+   * - For `unicast` topics, it resolves to the single handler's result.
+   * - For `multicast` topics, it resolves to an array of all handler results.
+   *
+   * If one or more handlers throw, the Promise is rejected:
+   * - With the original error if a single handler failed.
+   * - With an `AggregateError` containing all errors if multiple handlers failed.
+   *
+   * @example
+   * ```ts
+   * // UnicastTopic
+   * const result = await bus.publishAsync(NotifyUserTopic, user);
+   * console.log("Notification result", result);
+   *
+   * // Topic
+   * const results = await bus.publishAsync(CommandTopic, "shutdown");
+   * console.log("Service shutdown results", results);
+   * ```
+   *
+   * @param topic The topic to publish the message to.
+   * @param data The data payload to send with the message.
+   * @returns A promise that resolves with the handler result(s),
+   *   or rejects if any handler throws.
+   */
+  publishAsync<T, R>(topic: UnicastTopic<T, R>, data: T): Promise<R>;
+  publishAsync<T, R>(topic: Topic<T, R>, data: T): Promise<R[]>;
 
   /**
    * Creates a lazily-initialized subscription to the specified topic that is also
@@ -311,7 +377,7 @@ export interface MessageBus {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on each topic message.
    */
-  subscribe<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
+  subscribe<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
   subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 
   /**
@@ -348,7 +414,7 @@ export interface MessageBus {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on the next topic message.
    */
-  subscribeOnce<T>(topic: Topic<T>, handler: MessageHandler<T>): Subscription;
+  subscribeOnce<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
   subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
 
   /**

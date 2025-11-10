@@ -13,13 +13,19 @@ import type {
 } from "./messageBus";
 import { defaultLimit, defaultPriority, SubscriptionRegistry } from "./registry";
 import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
-import type { Topic } from "./topic";
+import type { Topic, UnicastTopic } from "./topic";
 
 type Message = {
   readonly topic: Topic;
   readonly data: unknown;
+  readonly async?: boolean;
   readonly broadcast?: boolean;
   readonly listeners?: boolean;
+};
+
+type MessageResult = {
+  readonly values: unknown[];
+  readonly errors: unknown[];
 };
 
 // @internal
@@ -64,7 +70,26 @@ export class MessageBusImpl implements MessageBus {
   }
 
   publish(topic: Topic, data?: unknown): void {
-    this.enqueueMessage({ topic, data, broadcast: true, listeners: true });
+    void this.enqueueMessage({ topic, data, broadcast: true, listeners: true });
+  }
+
+  publishAsync(topic: UnicastTopic, data?: unknown): Promise<unknown>;
+  publishAsync(topic: Topic, data?: unknown): Promise<unknown[]>;
+  publishAsync(topic: Topic, data?: unknown): Promise<unknown | unknown[]> {
+    const result = this.enqueueMessage({ topic, data, async: true, broadcast: true, listeners: true });
+    return result.then(({ values, errors }) => {
+      if (errors.length > 0) {
+        throw errors.length > 1 ? new AggregateError(errors) : errors[0];
+      }
+
+      if (values.length === 0) {
+        throw new Error(tag(`no subscribers for ${topic.toString()}`));
+      }
+
+      const isMulticast = topic.mode === "multicast";
+      check(isMulticast || values.length === 1, () => `multiple result values for ${topic.toString()}`);
+      return isMulticast ? values : values[0];
+    });
   }
 
   subscribe(topic: Topic): LazyAsyncSubscription;
@@ -155,17 +180,19 @@ export class MessageBusImpl implements MessageBus {
     this.myChildren.clear();
   }
 
-  private enqueueMessage(message: Message): void {
+  private enqueueMessage(message: Message): Promise<MessageResult> {
     this.checkDisposed();
-    this.myPublishQueue.push(() => this.publishMessage(message));
+    return new Promise((resolve) => {
+      this.myPublishQueue.push(() => resolve(this.publishMessage(message)));
 
-    if (!this.myPublishing) {
-      this.myPublishing = true;
-      queueMicrotask(() => this.drainPublishQueue());
-    }
+      if (!this.myPublishing) {
+        this.myPublishing = true;
+        queueMicrotask(() => this.drainPublishQueue());
+      }
+    });
   }
 
-  private publishMessage({ topic, data, broadcast, listeners }: Message): void {
+  private publishMessage({ topic, data, async, broadcast, listeners }: Message): Promise<MessageResult> {
     // Consider only active registrations.
     // In addition, sort them by priority: a lower priority value means being invoked first.
     const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
@@ -182,27 +209,66 @@ export class MessageBusImpl implements MessageBus {
       }
     }
 
+    const broadcastResults: Promise<MessageResult>[] = [];
+
     // Keep in mind that publish() will queue the task, so child buses,
     // or the parent bus depending on the broadcasting direction,
     // will receive the message after this bus
     if (broadcast) {
       if (topic.broadcastDirection === "children") {
         for (const child of this.myChildren) {
-          child.enqueueMessage({ topic, data, broadcast: true });
+          broadcastResults.push(child.enqueueMessage({ topic, data, async, broadcast: true }));
         }
       } else if (this.myParent) {
-        this.myParent.enqueueMessage({ topic, data });
+        broadcastResults.push(this.myParent.enqueueMessage({ topic, data, async }));
       }
     }
 
-    for (const registration of registrations) {
+    const values = registrations.map((r) => {
       try {
-        const _ = registration.handler(data);
-        Promise.resolve(_).catch((e) => this.handleError(e));
+        return Promise.resolve(r.handler(data)).catch((e) => {
+          if (async) {
+            throw e;
+          }
+
+          this.handleError(e);
+        });
       } catch (e) {
-        this.handleError(e);
+        if (async) {
+          return Promise.reject(e);
+        }
+
+        return this.handleError(e);
       }
+    });
+
+    // Return immediately if there are no subscribers to avoid heavy promise-based code
+    if (!async || (values.length === 0 && broadcastResults.length === 0)) {
+      return Promise.resolve({
+        values: [],
+        errors: [],
+      });
     }
+
+    const result = Promise.allSettled(values.filter((v) => !!v)).then((results): MessageResult => {
+      const values: unknown[] = [];
+      const errors: unknown[] = [];
+
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          values.push(result.value);
+        } else {
+          errors.push(result.reason);
+        }
+      }
+
+      return { values, errors };
+    });
+
+    return Promise.all([result, ...broadcastResults]).then((results) => ({
+      values: results.flatMap((r) => r.values),
+      errors: results.flatMap((r) => r.errors),
+    }));
   }
 
   private drainPublishQueue(): void {
