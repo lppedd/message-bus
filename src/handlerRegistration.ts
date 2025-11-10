@@ -6,7 +6,7 @@ import type { Topic } from "./topic";
 export class HandlerRegistration implements Registration {
   private readonly myRegistry: SubscriptionRegistry;
   private readonly myTopics: Topic[];
-  private readonly myHandler: MessageHandler;
+  private readonly myHandler: MessageHandler<unknown, unknown>;
 
   // This is an eager registration and thus it is active immediately
   isActive: boolean = true;
@@ -32,7 +32,7 @@ export class HandlerRegistration implements Registration {
     }
   }
 
-  handler = (data: unknown): void | Promise<void> => {
+  handler = (data: unknown): unknown | Promise<unknown> => {
     if (this.remaining === 0) {
       this.dispose();
       return;

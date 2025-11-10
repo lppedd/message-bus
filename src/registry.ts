@@ -14,7 +14,7 @@ export interface Registration extends Subscription {
   isDisposed: boolean;
   remaining: number;
   priority: number;
-  handler: MessageHandler;
+  handler: MessageHandler<unknown, unknown>;
 }
 
 // @internal
