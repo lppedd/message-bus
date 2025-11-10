@@ -131,11 +131,14 @@ export class MessageBusImpl implements MessageBus {
 
     // Remove this bus from the parent's child buses
     this.myParent?.myChildren?.delete(this);
+    this.myListeners.clear();
 
     // Dispose all registrations (a.k.a. subscriptions) created by this bus
     for (const registration of this.myRegistry.registrations) {
       registration.dispose();
     }
+
+    this.myRegistry.clear();
 
     // Dispose child buses
     for (const child of this.myChildren) {
@@ -143,8 +146,6 @@ export class MessageBusImpl implements MessageBus {
     }
 
     this.myChildren.clear();
-    this.myRegistry.clear();
-    this.myListeners.clear();
   }
 
   private publishImpl(topic: Topic, data: unknown, broadcast: boolean, listeners: boolean): void {
@@ -187,16 +188,15 @@ export class MessageBusImpl implements MessageBus {
     }
 
     // Keep the type as for now we want to make sure we always deal with voids
-    const localResults: Promise<void>[] = registrations.map((registration) => {
+    const values: Promise<void>[] = registrations.map((registration) => {
       try {
-        const result = registration.handler(data);
-        return Promise.resolve(result);
+        return Promise.resolve(registration.handler(data));
       } catch (e) {
         return Promise.reject(e);
       }
     });
 
-    void Promise.allSettled(localResults).then((results) => {
+    void Promise.allSettled(values).then((results) => {
       const errors = this.extractErrors(results);
 
       for (const error of errors) {
