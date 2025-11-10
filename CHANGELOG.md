@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+- Added support for asynchronous message listeners.
+- Reverted to aggregating multiple errors into one before forwarding it to `MessageBusOptions.errorHandler`.
+- Applied minor internal refactorings to improve reliability.
+
 ## 0.3.3
 
 - Improved type inference for `UnicastTopic`s.  
