@@ -166,7 +166,12 @@ export class MessageBusImpl implements MessageBus {
     if (listeners) {
       // Listeners are invoked in the order they have been added
       for (const listener of this.myListeners) {
-        void listener(topic, data, registrations.length);
+        try {
+          const _ = listener(topic, data, registrations.length);
+          Promise.resolve(_).catch((e) => this.handleError(e));
+        } catch (e) {
+          this.handleError(e);
+        }
       }
     }
 
@@ -189,10 +194,10 @@ export class MessageBusImpl implements MessageBus {
 
     for (const registration of registrations) {
       try {
-        const value = registration.handler(data);
-        Promise.resolve(value).catch((e) => void this.myOptions.errorHandler(e));
+        const _ = registration.handler(data);
+        Promise.resolve(_).catch((e) => this.handleError(e));
       } catch (e) {
-        void this.myOptions.errorHandler(e);
+        this.handleError(e);
       }
     }
   }
@@ -236,6 +241,18 @@ export class MessageBusImpl implements MessageBus {
     }
 
     return root;
+  }
+
+  private handleError(e: unknown): void {
+    const printError = (e: unknown): void => {
+      console.error(tag("caught unhandled error from MessageBusOptions.errorHandler."), e);
+    };
+
+    try {
+      Promise.resolve(this.myOptions.errorHandler(e)).catch(printError);
+    } catch (e) {
+      printError(e);
+    }
   }
 
   private checkDisposed(): void {
