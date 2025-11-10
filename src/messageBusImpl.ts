@@ -182,7 +182,7 @@ export class MessageBusImpl implements MessageBus {
     if (listeners) {
       // Listeners are invoked in the order they have been added
       for (const listener of this.myListeners) {
-        listener(topic, data, registrations.length);
+        void listener(topic, data, registrations.length);
       }
     }
 

@@ -35,7 +35,7 @@ export type MessageHandler<T = unknown> = (data: T) => void | Promise<void>;
  * });
  * ```
  */
-export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void;
+export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void | Promise<void>;
 
 export interface MessageBusOptions {
   /**
