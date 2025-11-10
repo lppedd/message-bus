@@ -41,7 +41,11 @@ export type MessageHandler<T = unknown, R = void> = (data: T) => R | Promise<R>;
  * @param data The payload associated with the topic message.
  * @param activeSubscriptions The number of active subscriptions for the topic at the time of publication.
  */
-export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void | Promise<void>;
+export type MessageListener = (
+  topic: Topic<unknown, unknown>,
+  data: unknown,
+  activeSubscriptions: number,
+) => void | Promise<void>;
 
 export interface MessageBusOptions {
   /**
