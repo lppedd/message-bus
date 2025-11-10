@@ -14,8 +14,11 @@ export interface TopicDecorator {
 
 /**
  * A message topic to categorize messages in the message bus.
+ *
+ * @template T The type of the payload data associated with the topic.
+ * @template R The type of the value returned from message handlers subscribed to the topic.
  */
-export interface Topic<T = unknown> extends TopicDecorator {
+export interface Topic<T = unknown, R = void> extends TopicDecorator {
   /**
    * A human-readable name for the topic, useful for debugging and logging.
    */
@@ -46,12 +49,22 @@ export interface Topic<T = unknown> extends TopicDecorator {
   readonly broadcastDirection: "children" | "parent";
 
   /**
-   * Ensures that different Topic<T> types are not structurally compatible.
+   * Ensures that different `Topic<T>` types are not structurally compatible.
+   *
    * This property is never used at runtime.
    *
    * @private
    */
-  readonly __type?: T;
+  readonly __dataType?: T;
+
+  /**
+   * Ensures that different `Topic<T, R>` types are not structurally compatible.
+   *
+   * This property is never used at runtime.
+   *
+   * @private
+   */
+  readonly __returnType?: R;
 }
 
 /**
@@ -62,7 +75,7 @@ export interface Topic<T = unknown> extends TopicDecorator {
  *
  * Separate message bus hierarchies can each have their own subscription.
  */
-export interface UnicastTopic<T = unknown> extends Topic<T> {
+export interface UnicastTopic<T = unknown, R = void> extends Topic<T, R> {
   readonly mode: "unicast";
 }
 
@@ -122,7 +135,7 @@ export interface UnicastTopicOptions extends TopicOptions {
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T>(displayName: string, options: UnicastTopicOptions): UnicastTopic<T>;
+export function createTopic<T, R = void>(displayName: string, options: UnicastTopicOptions): UnicastTopic<T, R>;
 
 /**
  * Creates a new {@link Topic} that can be used to publish or subscribe to messages.
@@ -137,10 +150,10 @@ export function createTopic<T>(displayName: string, options: UnicastTopicOptions
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T>(displayName: string, options?: TopicOptions): Topic<T>;
+export function createTopic<T, R = void>(displayName: string, options?: TopicOptions): Topic<T, R>;
 
 // @internal
-export function createTopic<T>(displayName: string, options?: TopicOptions): Topic<T> {
+export function createTopic<T, R>(displayName: string, options?: TopicOptions): Topic<T, R> {
   const topicOptions: Required<TopicOptions> = {
     mode: options?.mode ?? "multicast",
     broadcastDirection: options?.broadcastDirection ?? "children",
@@ -180,11 +193,11 @@ export function createTopic<T>(displayName: string, options?: TopicOptions): Top
     -readonly [P in keyof T]: T[P];
   };
 
-  const writableTopic = topic as unknown as Writable<Topic<T>>;
+  const writableTopic = topic as unknown as Writable<Topic<T, R>>;
   writableTopic.displayName = topicName;
   writableTopic.mode = topicOptions.mode;
   writableTopic.broadcastDirection = topicOptions.broadcastDirection;
   writableTopic.toString = () => topicName;
 
-  return writableTopic as Topic<T>;
+  return writableTopic as Topic<T, R>;
 }

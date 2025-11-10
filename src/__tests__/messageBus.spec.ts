@@ -329,6 +329,64 @@ describe("MessageBus", () => {
     );
   });
 
+  it("should publish and await the topic handlers", async () => {
+    const CharCountTopic = createTopic<string, number>("CharCount");
+    messageBus.subscribe(CharCountTopic, (data) => data.length);
+    messageBus.subscribe(CharCountTopic, (data) => data.length * 2);
+
+    const promise = messageBus.publishAsync(CharCountTopic, "one");
+    await vi.runAllTimersAsync();
+
+    const counts = await promise;
+    expect(counts).toHaveLength(2);
+    expect(counts[0]).toBe(3);
+    expect(counts[1]).toBe(6);
+  });
+
+  it("should publish and await the unicast topic handler", async () => {
+    const CharCountTopic = createTopic<string, number>("CharCount", { mode: "unicast" });
+    messageBus.subscribe(CharCountTopic, (data) => data.length);
+
+    const promise = messageBus.publishAsync(CharCountTopic, "one");
+    await vi.runAllTimersAsync();
+
+    const count = await promise;
+    expect(count).toBe(3);
+  });
+
+  it("should publish and await a rejected promise with an error from the topic handlers", async () => {
+    const CharCountTopic = createTopic<string, number>("CharCount");
+    messageBus.subscribe(CharCountTopic, (data) => data.length);
+    messageBus.subscribe(CharCountTopic, (data) => {
+      throw new Error(`error 1 for ${data}`);
+    });
+
+    const promise = messageBus.publishAsync(CharCountTopic, "one");
+    await vi.runAllTimersAsync();
+
+    await expect(promise).rejects.toThrowError(new Error("error 1 for one"));
+  });
+
+  it("should publish and await a rejected promise with errors from the topic handlers", async () => {
+    const CharCountTopic = createTopic<string, number>("CharCount");
+    messageBus.subscribe(CharCountTopic, (data) => {
+      throw new Error(`error 1 for ${data}`);
+    });
+    messageBus.subscribe(CharCountTopic, (data) => {
+      throw new Error(`error 2 for ${data}`);
+    });
+
+    const promise = messageBus.publishAsync(CharCountTopic, "one");
+    await vi.runAllTimersAsync();
+
+    await expect(promise).rejects.toThrowError(
+      new AggregateError([
+        new Error("error 1 for one"), //
+        new Error("error 2 for one"),
+      ]),
+    );
+  });
+
   it("should throw if the message bus is disposed", () => {
     messageBus.subscribe(TestTopic, () => {});
 
