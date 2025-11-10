@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5
+
+- Reworked message handler error handling so that each error is processed as soon as the handler completes.
+- Added error handling for errors thrown by message listeners or the `errorHandler` itself (in which case
+  the error is always logged to `console.error`).
+
 ## 0.3.4
 
 - Added support for asynchronous message listeners.
