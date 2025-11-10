@@ -126,7 +126,7 @@ describe("MessageBus", () => {
 
     vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
       expect(args).toHaveLength(2);
-      expect(args[0]).toBe("[message-bus] caught unhandled error from message handler.");
+      expect(args[0]).toBe("[message-bus] caught unhandled error(s).");
       expect(String(args[1])).toBe("Error: error occurred in handler");
     });
 
@@ -149,10 +149,15 @@ describe("MessageBus", () => {
     messageBus.publish(TestTopic, "throws");
     vi.runAllTimers();
 
-    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2), 1000);
-    const msg = "[message-bus] caught unhandled error from message handler.";
-    expect(consoleErrorSpy).toHaveBeenNthCalledWith(1, msg, new Error("error occurred in handler 1"));
-    expect(consoleErrorSpy).toHaveBeenNthCalledWith(2, msg, new Error("async error occurred in handler 2"));
+    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(1), 1000);
+    expect(consoleErrorSpy).toHaveBeenNthCalledWith(
+      1,
+      "[message-bus] caught unhandled error(s).",
+      new AggregateError([
+        new Error("error occurred in handler 1"), //
+        new Error("async error occurred in handler 2"),
+      ]),
+    );
   });
 
   it("should propagate message to child buses (recursively)", () => {

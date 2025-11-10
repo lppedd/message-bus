@@ -32,7 +32,7 @@ export class MessageBusImpl implements MessageBus {
     this.myListeners = listeners ?? new Set();
 
     const consoleHandler = (e: unknown): void => {
-      console.error(tag("caught unhandled error from message handler."), e);
+      console.error(tag("caught unhandled error(s)."), e);
     };
 
     this.myOptions = {
@@ -197,18 +197,15 @@ export class MessageBusImpl implements MessageBus {
     });
 
     void Promise.allSettled(values).then((results) => {
-      const errors = this.extractErrors(results);
+      const errors = results //
+        .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+        .map((r) => r.reason);
 
-      for (const error of errors) {
+      if (errors.length > 0) {
+        const error = errors.length === 1 ? errors[0] : new AggregateError(errors);
         void this.myOptions.errorHandler(error);
       }
     });
-  }
-
-  private extractErrors(results: PromiseSettledResult<void>[]): unknown[] {
-    return results //
-      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r) => r.reason);
   }
 
   private drainPublishQueue(): void {
