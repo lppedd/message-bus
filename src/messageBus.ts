@@ -15,7 +15,7 @@ import type { Topic, Topics, UnicastTopic } from "./topic";
  * ```
  *
  * @param data The payload sent with the topic message.
- * @returns The handler's result, which may be returned synchronously or as a Promise.
+ * @returns The handler's result, which may be returned synchronously or as a promise.
  *  Defaults to `void`, which means nothing is returned.
  *
  * @template T The type of the payload data received by the handler.
@@ -47,7 +47,7 @@ export interface MessageBusOptions {
   /**
    * A handler for errors thrown from message handlers.
    *
-   * Note that if the error handler returns a Promise, it is not awaited.
+   * Note that if the error handler returns a promise, it is not awaited.
    *
    * @defaultValue (e) => console.error(e)
    */
@@ -262,11 +262,11 @@ export interface MessageBus {
    * Asynchronously publishes a new message without any associated data
    * to the specified topic and waits for all subscribed handlers to complete.
    *
-   * The returned Promise resolves once all subscribed handlers have completed:
+   * The returned promise resolves once all subscribed handlers have completed:
    * - For `unicast` topics, it resolves to the single handler's result.
    * - For `multicast` topics, it resolves to an array of all handler results.
    *
-   * If one or more handlers throw, the Promise is rejected:
+   * If one or more handlers throw, the promise is rejected:
    * - With the original error if a single handler failed.
    * - With an `AggregateError` containing all errors if multiple handlers failed.
    *
@@ -291,11 +291,11 @@ export interface MessageBus {
    * Asynchronously publishes a new message with associated data
    * to the specified topic and waits for all subscribed handlers to complete.
    *
-   * The returned Promise resolves once all subscribed handlers have completed:
+   * The returned promise resolves once all subscribed handlers have completed:
    * - For `unicast` topics, it resolves to the single handler's result.
    * - For `multicast` topics, it resolves to an array of all handler results.
    *
-   * If one or more handlers throw, the Promise is rejected:
+   * If one or more handlers throw, the promise is rejected:
    * - With the original error if a single handler failed.
    * - With an `AggregateError` containing all errors if multiple handlers failed.
    *
