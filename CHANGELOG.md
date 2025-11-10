@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+- Introduced `MessageBus.publishAsync` to allow publishing messages and awaiting the completion
+  of all subscribed handlers.
+
+  The promise returned by `publishAsync` resolves once all subscribed handlers have completed:
+  - For `unicast` topics, it resolves to the single handler's result.
+  - For `multicast` topics, it resolves to an array of all handler results.
+
+  If one or more handlers throw, the returned promise is rejected:
+  - With the original error if a single handler failed.
+  - With an `AggregateError` containing all errors if multiple handlers failed.
+
 ## 0.3.5
 
 - Reworked message handler error handling so that each error is processed as soon as the handler completes.
