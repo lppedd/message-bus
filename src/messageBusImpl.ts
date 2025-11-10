@@ -32,7 +32,7 @@ export class MessageBusImpl implements MessageBus {
     this.myListeners = listeners ?? new Set();
 
     const consoleHandler = (e: unknown): void => {
-      console.error(tag("caught unhandled error(s)."), e);
+      console.error(tag("caught unhandled error."), e);
     };
 
     this.myOptions = {
@@ -187,25 +187,14 @@ export class MessageBusImpl implements MessageBus {
       }
     }
 
-    // Keep the type as for now we want to make sure we always deal with voids
-    const values: Promise<void>[] = registrations.map((registration) => {
+    for (const registration of registrations) {
       try {
-        return Promise.resolve(registration.handler(data));
+        const value = registration.handler(data);
+        Promise.resolve(value).catch((e) => void this.myOptions.errorHandler(e));
       } catch (e) {
-        return Promise.reject(e);
+        void this.myOptions.errorHandler(e);
       }
-    });
-
-    void Promise.allSettled(values).then((results) => {
-      const errors = results //
-        .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-        .map((r) => r.reason);
-
-      if (errors.length > 0) {
-        const error = errors.length === 1 ? errors[0] : new AggregateError(errors);
-        void this.myOptions.errorHandler(error);
-      }
-    });
+    }
   }
 
   private drainPublishQueue(): void {
