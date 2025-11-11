@@ -387,6 +387,18 @@ describe("MessageBus", () => {
     );
   });
 
+  it("should clear message listeners", () => {
+    const l1 = (): void => {};
+    const l2 = (): void => {};
+    messageBus.addListener(l1);
+    messageBus.addListener(l2);
+
+    const listeners = messageBus.clearListeners();
+    expect(listeners).toHaveLength(2);
+    expect(listeners[0]).toBe(l1);
+    expect(listeners[1]).toBe(l2);
+  });
+
   it("should throw if the message bus is disposed", () => {
     messageBus.subscribe(TestTopic, () => {});
 

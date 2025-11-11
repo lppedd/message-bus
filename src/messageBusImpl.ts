@@ -161,6 +161,13 @@ export class MessageBusImpl implements MessageBus {
     this.myListeners.delete(listener);
   }
 
+  clearListeners(): MessageListener[] {
+    this.checkDisposed();
+    const listeners = Array.from(this.myListeners);
+    this.myListeners.clear();
+    return listeners;
+  }
+
   dispose(): void {
     if (this.myDisposed) {
       return;

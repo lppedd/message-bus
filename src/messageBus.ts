@@ -460,6 +460,11 @@ export interface MessageBus {
   removeListener(listener: MessageListener): void;
 
   /**
+   * Removes and returns all previously added {@link MessageListener}(s).
+   */
+  clearListeners(): MessageListener[];
+
+  /**
    * Disposes the message bus, all its child buses, and all active subscriptions.
    *
    * After disposal, neither this bus nor any child buses can be used for publishing or subscribing.
