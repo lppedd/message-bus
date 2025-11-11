@@ -8,7 +8,7 @@
 [![status](https://img.shields.io/badge/status-alpha-DB3683)](https://github.com/lppedd/message-bus)
 [![build](https://img.shields.io/github/actions/workflow/status/lppedd/message-bus/test.yml.svg?branch=main)](https://github.com/lppedd/message-bus/actions/workflows/test.yml)
 [![minified size](https://img.shields.io/bundlejs/size/@lppedd/message-bus)](https://bundlejs.com/?q=@lppedd/message-bus)
-[![license](https://img.shields.io/github/license/lppedd/message-bus?color=blue)](https://github.com/lppedd/message-bus/blob/main/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-F7F7F7)](https://github.com/lppedd/message-bus/blob/main/LICENSE)
 
 </div>
 <img align="center" src="./.github/images/hierarchical-bus.jpg"  alt="Hierarchical Bus" />
