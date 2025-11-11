@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+
+- Added `MessageBus.clearListeners` to remove all message listeners at once.
+
 ## 0.4.3
 
 - Cleaned up internal code in preparation for the next minor release.
