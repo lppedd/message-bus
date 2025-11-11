@@ -28,8 +28,6 @@ type MessageResult = {
   readonly errors: unknown[];
 };
 
-const Skip: unique symbol = Symbol.for("@lppedd/message-bus/Symbol/Skip");
-
 // @internal
 export class MessageBusImpl implements MessageBus {
   private readonly myParent?: MessageBusImpl;
@@ -226,7 +224,7 @@ export class MessageBusImpl implements MessageBus {
       }
     }
 
-    const values = registrations.map((r) => {
+    const values: Promise<unknown>[] = registrations.map((r) => {
       try {
         return Promise.resolve(r.handler(data)).catch((e) => {
           if (async) {
@@ -234,6 +232,10 @@ export class MessageBusImpl implements MessageBus {
           }
 
           this.handleError(e);
+
+          // Since fire-and-forget publishing does not use handler results,
+          // we can simply return undefined. It will never be considered.
+          return undefined;
         });
       } catch (e) {
         if (async) {
@@ -241,7 +243,10 @@ export class MessageBusImpl implements MessageBus {
         }
 
         this.handleError(e);
-        return Skip;
+
+        // Since fire-and-forget publishing does not use handler results,
+        // we can simply return a successfully completed promise
+        return Promise.resolve();
       }
     });
 
@@ -253,7 +258,7 @@ export class MessageBusImpl implements MessageBus {
       });
     }
 
-    const result = Promise.allSettled(values.filter((v) => v !== Skip)).then((results): MessageResult => {
+    const result = Promise.allSettled(values).then((results): MessageResult => {
       const values: unknown[] = [];
       const errors: unknown[] = [];
 
