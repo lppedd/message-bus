@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Simplified internal message publishing and error handling.
+
 ## 0.4.1
 
 - Avoided incorrectly removing `undefined` or `null` handler return values.
