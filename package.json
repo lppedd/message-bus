@@ -1,6 +1,6 @@
 {
   "name": "@lppedd/message-bus",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "license": "MIT",
   "description": "A minimal, type-safe, hierarchical pub-sub message bus for TypeScript and JavaScript",
   "author": "Edoardo Luppi <lp.edoardo@gmail.com>",
