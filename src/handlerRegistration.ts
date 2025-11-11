@@ -5,7 +5,7 @@ import type { Topic } from "./topic";
 // @internal
 export class HandlerRegistration implements Registration {
   private readonly myRegistry: SubscriptionRegistry;
-  private readonly myTopics: Topic[];
+  private readonly myTopics: Topic<unknown, unknown>[];
   private readonly myHandler: MessageHandler<unknown, unknown>;
 
   // This is an eager registration and thus it is active immediately
@@ -16,7 +16,7 @@ export class HandlerRegistration implements Registration {
 
   constructor(
     registry: SubscriptionRegistry,
-    topics: Topic[],
+    topics: Topic<unknown, unknown>[],
     handler: MessageHandler,
     limit: number,
     priority: number,

@@ -16,7 +16,7 @@ import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
 import type { Topic, UnicastTopic } from "./topic";
 
 type Message = {
-  readonly topic: Topic;
+  readonly topic: Topic<unknown, unknown>;
   readonly data: unknown;
   readonly broadcast?: boolean;
   readonly listeners?: boolean;
@@ -120,7 +120,7 @@ export class MessageBusImpl implements MessageBus {
 
   // @internal
   subscribeImpl(
-    topic: Topic | Topic[],
+    topic: Topic<unknown, unknown> | Topic[],
     handler: MessageHandler | undefined,
     limit: number,
     priority: number,
@@ -305,7 +305,7 @@ export class MessageBusImpl implements MessageBus {
   }
 
   // Scan the entire message bus tree using a BFS with a stack
-  private hasSubscription(topic: Topic): boolean {
+  private hasSubscription(topic: Topic<unknown, unknown>): boolean {
     const stack = [this.getRootBus()];
 
     do {

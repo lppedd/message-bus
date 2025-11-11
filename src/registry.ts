@@ -19,7 +19,7 @@ export interface Registration extends Subscription {
 
 // @internal
 export class SubscriptionRegistry {
-  private readonly myMap = new Map<Topic, Registration[]>();
+  private readonly myMap = new Map<Topic<unknown, unknown>, Registration[]>();
 
   /**
    * All registrations in the registry, regardless of whether they are active.
@@ -32,7 +32,7 @@ export class SubscriptionRegistry {
    * Returns whether the registry contains any registrations for the specified topic,
    * including inactive ones.
    */
-  has(topic: Topic): boolean {
+  has(topic: Topic<unknown, unknown>): boolean {
     const registrations = this.myMap.get(topic);
     return !!registrations && registrations.length > 0;
   }
@@ -40,7 +40,7 @@ export class SubscriptionRegistry {
   /**
    * Returns registrations for the specified topic.
    */
-  getAll(topic: Topic, activeOnly: boolean = false): Registration[] {
+  getAll(topic: Topic<unknown, unknown>, activeOnly: boolean = false): Registration[] {
     const registrations = this.myMap.get(topic) ?? [];
     return activeOnly ? registrations.filter((r) => r.isActive) : [...registrations];
   }
@@ -48,7 +48,7 @@ export class SubscriptionRegistry {
   /**
    * Adds a registration for the specified topic.
    */
-  add(topic: Topic, registration: Registration): void {
+  add(topic: Topic<unknown, unknown>, registration: Registration): void {
     let registrations = this.myMap.get(topic);
 
     if (!registrations) {
@@ -64,7 +64,7 @@ export class SubscriptionRegistry {
    *
    * @returns `true` if the registration was removed, `false` otherwise
    */
-  remove(topic: Topic, registration: Registration): void {
+  remove(topic: Topic<unknown, unknown>, registration: Registration): void {
     const registrations = this.myMap.get(topic);
 
     if (registrations) {
