@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Avoided incorrectly removing `undefined` or `null` handler return values.
+- Improved type information for `MessageListener`.
+
 ## 0.4.0
 
 - Introduced `MessageBus.publishAsync` to allow publishing messages and awaiting the completion
