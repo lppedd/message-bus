@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- Cleaned up internal code in preparation for the next minor release.
+
 ## 0.4.2
 
 - Simplified internal message publishing and error handling.
