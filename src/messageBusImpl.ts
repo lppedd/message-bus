@@ -18,9 +18,9 @@ import type { Topic, UnicastTopic } from "./topic";
 type Message = {
   readonly topic: Topic;
   readonly data: unknown;
-  readonly async?: boolean;
   readonly broadcast?: boolean;
   readonly listeners?: boolean;
+  readonly awaitable?: boolean;
 };
 
 type MessageResult = {
@@ -31,11 +31,11 @@ type MessageResult = {
 // @internal
 export class MessageBusImpl implements MessageBus {
   private readonly myParent?: MessageBusImpl;
-  private readonly myOptions: Required<MessageBusOptions>;
-  private readonly myListeners: Set<MessageListener>;
-  private readonly myRegistry = new SubscriptionRegistry();
   private readonly myChildren = new Set<MessageBusImpl>();
+  private readonly myRegistry = new SubscriptionRegistry();
   private readonly myPublishQueue: (() => void)[] = [];
+  private readonly myListeners: Set<MessageListener>;
+  private readonly myOptions: Required<MessageBusOptions>;
 
   private myPublishing: boolean = false;
   private myDisposed: boolean = false;
@@ -43,13 +43,11 @@ export class MessageBusImpl implements MessageBus {
   constructor(parent?: MessageBusImpl, listeners?: Set<MessageListener>, options?: MessageBusOptions) {
     this.myParent = parent;
     this.myListeners = listeners ?? new Set();
-
-    const consoleHandler = (e: unknown): void => {
-      console.error(tag("caught unhandled error."), e);
-    };
-
     this.myOptions = {
-      errorHandler: options?.errorHandler ?? consoleHandler,
+      // prettier-ignore
+      errorHandler: options?.errorHandler ?? ((e) => {
+        console.error(tag("caught unhandled error."), e);
+      }),
     };
   }
 
@@ -70,22 +68,31 @@ export class MessageBusImpl implements MessageBus {
   }
 
   publish(topic: Topic, data?: unknown): void {
-    void this.enqueueMessage({ topic, data, broadcast: true, listeners: true });
+    void this.enqueueMessage({
+      topic,
+      data,
+      broadcast: true,
+      listeners: true,
+    });
   }
 
   publishAsync(topic: UnicastTopic, data?: unknown): Promise<unknown>;
   publishAsync(topic: Topic, data?: unknown): Promise<unknown[]>;
   publishAsync(topic: Topic, data?: unknown): Promise<unknown | unknown[]> {
-    const result = this.enqueueMessage({ topic, data, async: true, broadcast: true, listeners: true });
+    const result = this.enqueueMessage({
+      topic,
+      data,
+      broadcast: true,
+      listeners: true,
+      awaitable: true,
+    });
+
     return result.then(({ values, errors }) => {
       if (errors.length > 0) {
         throw errors.length > 1 ? new AggregateError(errors) : errors[0];
       }
 
-      if (values.length === 0) {
-        throw new Error(tag(`no subscribers for ${topic.toString()}`));
-      }
-
+      check(values.length > 0, () => `no subscribers for ${topic.toString()}`);
       const isMulticast = topic.mode === "multicast";
       check(isMulticast || values.length === 1, () => `multiple result values for ${topic.toString()}`);
       return isMulticast ? values : values[0];
@@ -192,7 +199,7 @@ export class MessageBusImpl implements MessageBus {
     });
   }
 
-  private publishMessage({ topic, data, async, broadcast, listeners }: Message): Promise<MessageResult> {
+  private publishMessage({ topic, data, broadcast, listeners, awaitable }: Message): Promise<MessageResult> {
     // Consider only active registrations.
     // In addition, sort them by priority: a lower priority value means being invoked first.
     const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
@@ -217,17 +224,17 @@ export class MessageBusImpl implements MessageBus {
     if (broadcast) {
       if (topic.broadcastDirection === "children") {
         for (const child of this.myChildren) {
-          broadcastResults.push(child.enqueueMessage({ topic, data, async, broadcast: true }));
+          broadcastResults.push(child.enqueueMessage({ topic, data, broadcast: true, awaitable }));
         }
       } else if (this.myParent) {
-        broadcastResults.push(this.myParent.enqueueMessage({ topic, data, async }));
+        broadcastResults.push(this.myParent.enqueueMessage({ topic, data, awaitable }));
       }
     }
 
     const values: Promise<unknown>[] = registrations.map((r) => {
       try {
         return Promise.resolve(r.handler(data)).catch((e) => {
-          if (async) {
+          if (awaitable) {
             throw e;
           }
 
@@ -238,7 +245,7 @@ export class MessageBusImpl implements MessageBus {
           return undefined;
         });
       } catch (e) {
-        if (async) {
+        if (awaitable) {
           return Promise.reject(e);
         }
 
@@ -251,7 +258,7 @@ export class MessageBusImpl implements MessageBus {
     });
 
     // Return immediately if there are no subscribers to avoid heavy promise-based code
-    if (!async || (values.length === 0 && broadcastResults.length === 0)) {
+    if (!awaitable || (values.length === 0 && broadcastResults.length === 0)) {
       return Promise.resolve({
         values: [],
         errors: [],
