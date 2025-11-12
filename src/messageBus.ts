@@ -22,7 +22,7 @@ import type { Topic, Topics, UnicastTopic } from "./topic";
  * @template R The type of the value returned by the handler.
  *   Defaults to `void`, which means nothing is returned.
  */
-export type MessageHandler<T = unknown, R = void> = (data: T) => R | Promise<R>;
+export type MessageHandler<T = unknown, R = unknown> = (data: T) => R | Promise<R>;
 
 /**
  * A listener function that observes all messages being published through a {@link MessageBus},
@@ -41,11 +41,7 @@ export type MessageHandler<T = unknown, R = void> = (data: T) => R | Promise<R>;
  * @param data The payload associated with the topic message.
  * @param activeSubscriptions The number of active subscriptions for the topic at the time of publication.
  */
-export type MessageListener = (
-  topic: Topic<unknown, unknown>,
-  data: unknown,
-  activeSubscriptions: number,
-) => void | Promise<void>;
+export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void | Promise<void>;
 
 export interface MessageBusOptions {
   /**
@@ -154,7 +150,7 @@ export interface SubscriptionBuilder {
    *
    * @param topic The topic to subscribe to.
    */
-  subscribe<T>(topic: Topic<T>): LazyAsyncSubscription<T>;
+  subscribe<T>(topic: Topic<T, void>): LazyAsyncSubscription<T>;
   subscribe<T extends [any, ...any[]]>(topics: Topics<T>): LazyAsyncSubscription<T[number]>;
 
   /**
@@ -180,8 +176,8 @@ export interface SubscriptionBuilder {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on each topic message.
    */
-  subscribe<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
-  subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
+  subscribe<T, R = void>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
+  subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number], void>): Subscription;
 
   /**
    * Subscribes once to the specified topic, returning a promise that resolves
@@ -198,7 +194,7 @@ export interface SubscriptionBuilder {
    *
    * @param topic The topic to subscribe to.
    */
-  subscribeOnce<T>(topic: Topic<T>): Promise<T>;
+  subscribeOnce<T>(topic: Topic<T, void>): Promise<T>;
   subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>): Promise<T[number]>;
 
   /**
@@ -217,8 +213,8 @@ export interface SubscriptionBuilder {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on the next topic message.
    */
-  subscribeOnce<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
-  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
+  subscribeOnce<T, R = void>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
+  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number], void>): Subscription;
 }
 
 /**
@@ -247,7 +243,7 @@ export interface MessageBus {
    *
    * @param topic The topic to publish the message to.
    */
-  publish(topic: Topic<void>): void;
+  publish(topic: Topic<void, void>): void;
 
   /**
    * Publishes a new message with associated data to the specified topic.
@@ -260,7 +256,7 @@ export interface MessageBus {
    * @param topic The topic to publish the message to.
    * @param data The data payload to send with the message.
    */
-  publish<T>(topic: Topic<T>, data: T): void;
+  publish<T>(topic: Topic<T, void>, data: T): void;
 
   /**
    * Asynchronously publishes a new message without any associated data
@@ -288,8 +284,8 @@ export interface MessageBus {
    * @returns A promise that resolves with the handler result(s),
    *   or rejects if any handler throws.
    */
-  publishAsync<R>(topic: UnicastTopic<void, R>): Promise<R>;
-  publishAsync<R>(topic: Topic<void, R>): Promise<R[]>;
+  publishAsync<R = void>(topic: UnicastTopic<void, R>): Promise<R>;
+  publishAsync<R = void>(topic: Topic<void, R>): Promise<R[]>;
 
   /**
    * Asynchronously publishes a new message with associated data
@@ -319,8 +315,8 @@ export interface MessageBus {
    * @returns A promise that resolves with the handler result(s),
    *   or rejects if any handler throws.
    */
-  publishAsync<T, R>(topic: UnicastTopic<T, R>, data: T): Promise<R>;
-  publishAsync<T, R>(topic: Topic<T, R>, data: T): Promise<R[]>;
+  publishAsync<T, R = void>(topic: UnicastTopic<T, R>, data: T): Promise<R>;
+  publishAsync<T, R = void>(topic: Topic<T, R>, data: T): Promise<R[]>;
 
   /**
    * Creates a lazily-initialized subscription to the specified topic that is also
@@ -352,7 +348,7 @@ export interface MessageBus {
    *
    * @param topic The topic to subscribe to.
    */
-  subscribe<T>(topic: Topic<T>): LazyAsyncSubscription<T>;
+  subscribe<T>(topic: Topic<T, void>): LazyAsyncSubscription<T>;
   subscribe<T extends [any, ...any[]]>(topics: Topics<T>): LazyAsyncSubscription<T[number]>;
 
   /**
@@ -381,8 +377,8 @@ export interface MessageBus {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on each topic message.
    */
-  subscribe<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
-  subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
+  subscribe<T, R = void>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
+  subscribe<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number], void>): Subscription;
 
   /**
    * Subscribes once to the specified topic, returning a promise that resolves
@@ -399,7 +395,7 @@ export interface MessageBus {
    *
    * @param topic The topic to subscribe to.
    */
-  subscribeOnce<T>(topic: Topic<T>): Promise<T>;
+  subscribeOnce<T>(topic: Topic<T, void>): Promise<T>;
   subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>): Promise<T[number]>;
 
   /**
@@ -418,8 +414,8 @@ export interface MessageBus {
    * @param topic The topic to subscribe to.
    * @param handler A callback invoked on the next topic message.
    */
-  subscribeOnce<T, R>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
-  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number]>): Subscription;
+  subscribeOnce<T, R = void>(topic: Topic<T, R>, handler: MessageHandler<T, R>): Subscription;
+  subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number], void>): Subscription;
 
   /**
    * Sets the maximum number of messages to receive for the next subscription.

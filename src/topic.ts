@@ -18,7 +18,7 @@ export interface TopicDecorator {
  * @template T The type of the payload data associated with the topic.
  * @template R The type of the value returned from message handlers subscribed to the topic.
  */
-export interface Topic<T = unknown, R = void> extends TopicDecorator {
+export interface Topic<T = unknown, R = unknown> extends TopicDecorator {
   /**
    * A human-readable name for the topic, useful for debugging and logging.
    */
@@ -49,22 +49,13 @@ export interface Topic<T = unknown, R = void> extends TopicDecorator {
   readonly broadcastDirection: "children" | "parent";
 
   /**
-   * Ensures that different `Topic<T>` types are not structurally compatible.
-   *
-   * This property is never used at runtime.
-   *
-   * @private
-   */
-  readonly __dataType?: T;
-
-  /**
    * Ensures that different `Topic<T, R>` types are not structurally compatible.
    *
    * This property is never used at runtime.
    *
    * @private
    */
-  readonly __returnType?: R;
+  readonly __types?: (t: T, r: R) => void;
 }
 
 /**
@@ -75,7 +66,7 @@ export interface Topic<T = unknown, R = void> extends TopicDecorator {
  *
  * Separate message bus hierarchies can each have their own subscription.
  */
-export interface UnicastTopic<T = unknown, R = void> extends Topic<T, R> {
+export interface UnicastTopic<T = unknown, R = unknown> extends Topic<T, R> {
   readonly mode: "unicast";
 }
 
@@ -83,7 +74,7 @@ export interface UnicastTopic<T = unknown, R = void> extends Topic<T, R> {
  * Represents a non-empty array of topics.
  */
 export type Topics<T extends [any, ...any[]]> = {
-  readonly [K in keyof T]: Topic<T[K]>;
+  readonly [K in keyof T]: Topic<T[K], void>;
 };
 
 /**
@@ -153,7 +144,7 @@ export function createTopic<T, R = void>(displayName: string, options: UnicastTo
 export function createTopic<T, R = void>(displayName: string, options?: TopicOptions): Topic<T, R>;
 
 // @internal
-export function createTopic<T, R>(displayName: string, options?: TopicOptions): Topic<T, R> {
+export function createTopic<T, R = void>(displayName: string, options?: TopicOptions): Topic<T, R> {
   const topicOptions: Required<TopicOptions> = {
     mode: options?.mode ?? "multicast",
     broadcastDirection: options?.broadcastDirection ?? "children",
@@ -182,7 +173,7 @@ export function createTopic<T, R>(displayName: string, options?: TopicOptions): 
       });
 
       methods.set(propertyKey, {
-        topic: topic as unknown as Topic<T>,
+        topic: topic as unknown as Topic,
         index: parameterIndex,
         priority: priority,
       });
@@ -193,11 +184,11 @@ export function createTopic<T, R>(displayName: string, options?: TopicOptions): 
     -readonly [P in keyof T]: T[P];
   };
 
-  const writableTopic = topic as unknown as Writable<Topic<T, R>>;
+  const writableTopic = topic as unknown as Writable<Topic>;
   writableTopic.displayName = topicName;
   writableTopic.mode = topicOptions.mode;
   writableTopic.broadcastDirection = topicOptions.broadcastDirection;
   writableTopic.toString = () => topicName;
 
-  return writableTopic as Topic<T, R>;
+  return writableTopic as Topic;
 }

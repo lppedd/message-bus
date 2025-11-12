@@ -7,6 +7,12 @@ import { AutoSubscribe } from "../autoSubscribe";
 import { createMessageBus } from "../messageBus";
 import { createTopic } from "../topic";
 
+const waitForPromisesAndFakeTimers = async (): Promise<void> => {
+  do {
+    await vi.runAllTimersAsync();
+  } while (vi.getTimerCount() > 0);
+};
+
 describe("MessageBus", () => {
   let messageBus = createMessageBus();
   let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -26,25 +32,27 @@ describe("MessageBus", () => {
     messageBus = createMessageBus();
   });
 
-  it("should publish a message", () => {
+  it("should publish a message", async () => {
     const handler = vi.fn(() => {});
     messageBus.subscribe(TestTopic, handler);
+
     messageBus.publish(TestTopic, "it works");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(handler).toHaveBeenCalledExactlyOnceWith("it works");
   });
 
-  it("should dispose subscription", () => {
+  it("should dispose subscription", async () => {
     const handler = vi.fn(() => {});
     messageBus.subscribe(TestTopic, handler).dispose();
+
     messageBus.publish(TestTopic, "it works");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(handler).toHaveBeenCalledTimes(0);
   });
 
-  it("should subscribe via @AutoSubscribe", () => {
+  it("should subscribe via @AutoSubscribe", async () => {
     @AutoSubscribe(() => messageBus)
     class Example {
       data?: string;
@@ -55,13 +63,14 @@ describe("MessageBus", () => {
     }
 
     const example = new Example();
-    messageBus.publish(TestTopic, "it works");
 
-    vi.runAllTimers();
+    messageBus.publish(TestTopic, "it works");
+    await waitForPromisesAndFakeTimers();
+
     expect(example.data).toBe("it works");
   });
 
-  it("should subscribe to multiple topics", () => {
+  it("should subscribe to multiple topics", async () => {
     const StringTopic = createTopic<string>("StringTopic");
     const NumberTopic = createTopic<number>("NumberTopic");
 
@@ -69,19 +78,19 @@ describe("MessageBus", () => {
     const subscription = messageBus.subscribe([StringTopic, NumberTopic], handler);
 
     messageBus.publish(StringTopic, "a string");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     messageBus.publish(NumberTopic, 99);
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     // Verify all topic subscriptions are removed
     subscription.dispose();
 
     messageBus.publish(StringTopic, "another string");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     messageBus.publish(NumberTopic, 10);
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(handler).toHaveBeenCalledTimes(2);
     expect(handler).toHaveBeenNthCalledWith(1, "a string");
@@ -119,7 +128,7 @@ describe("MessageBus", () => {
     );
   });
 
-  it("should intercept unhandled error coming from a message handler", () => {
+  it("should intercept unhandled error coming from a message handler", async () => {
     messageBus.subscribe(TestTopic, () => {
       throw new Error("error occurred in handler");
     });
@@ -132,7 +141,7 @@ describe("MessageBus", () => {
 
     // Should not let errors escape, but print to console.error instead
     messageBus.publish(TestTopic, "throws");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
   });
 
   it("should intercept unhandled errors coming from multiple message handlers", async () => {
@@ -147,15 +156,15 @@ describe("MessageBus", () => {
 
     // Should not let errors escape, but print to console.error instead
     messageBus.publish(TestTopic, "throws");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
-    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2), 1000);
+    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2), 500);
     const msg = "[message-bus] caught unhandled error.";
     expect(consoleErrorSpy).toHaveBeenNthCalledWith(1, msg, new Error("error occurred in handler 1"));
     expect(consoleErrorSpy).toHaveBeenNthCalledWith(2, msg, new Error("async error occurred in handler 2"));
   });
 
-  it("should propagate message to child buses (recursively)", () => {
+  it("should propagate message to child buses (recursively)", async () => {
     const handler = vi.fn(() => {});
     messageBus.subscribe(TestTopic, handler);
 
@@ -172,7 +181,7 @@ describe("MessageBus", () => {
     childBus3.subscribe(TestTopic, childHandler3);
 
     messageBus.publish(TestTopic, "it works");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(handler).toHaveBeenCalledExactlyOnceWith("it works");
     expect(childHandler1).toHaveBeenCalledExactlyOnceWith("it works");
@@ -184,7 +193,7 @@ describe("MessageBus", () => {
     expect(childHandler3).toHaveBeenCalledAfter(childHandler2);
   });
 
-  it("should propagate message to parent bus (not recursively)", () => {
+  it("should propagate message to parent bus (not recursively)", async () => {
     const ParentTestTopic = createTopic<string>("ParentTestTopic", { broadcastDirection: "parent" });
     const handler = vi.fn(() => {});
     messageBus.subscribe(ParentTestTopic, handler);
@@ -198,7 +207,7 @@ describe("MessageBus", () => {
     childBus2.subscribe(ParentTestTopic, childHandler2);
 
     childBus2.publish(ParentTestTopic, "it works");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(childHandler2).toHaveBeenCalledExactlyOnceWith("it works");
     expect(childHandler).toHaveBeenCalledExactlyOnceWith("it works");
@@ -255,7 +264,7 @@ describe("MessageBus", () => {
     expect((subscription as any).isDisposed).toBe(true);
   });
 
-  it("should consider subscription priority", () => {
+  it("should consider subscription priority", async () => {
     const handler1 = vi.fn(() => {});
     messageBus.withPriority(2).subscribe(TestTopic, handler1);
 
@@ -266,14 +275,14 @@ describe("MessageBus", () => {
     messageBus.withPriority(0).subscribe(TestTopic, handler3);
 
     messageBus.publish(TestTopic, "one");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(handler2).toHaveBeenCalledBefore(handler1);
     expect(handler3).toHaveBeenCalledBefore(handler1);
     expect(handler3).toHaveBeenCalledBefore(handler2);
   });
 
-  it("should listen to topic messages", () => {
+  it("should listen to topic messages", async () => {
     const listener = vi.fn((_topic, _data, _count) => {});
     messageBus.addListener(listener);
 
@@ -282,8 +291,10 @@ describe("MessageBus", () => {
     childBus.addListener(childListener);
 
     messageBus.publish(TestTopic, "three");
+    await waitForPromisesAndFakeTimers();
+
     messageBus.publish(TestTopic, "four");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(listener).toHaveBeenCalledTimes(2);
     expect(listener).toHaveBeenNthCalledWith(1, TestTopic, "three", 0);
@@ -298,21 +309,21 @@ describe("MessageBus", () => {
     messageBus.removeListener(listener);
 
     messageBus.publish(TestTopic, "five");
-    vi.runAllTimers();
+    await waitForPromisesAndFakeTimers();
 
     expect(listener).toHaveBeenCalledTimes(0);
     expect(childListener).toHaveBeenCalledTimes(0);
   });
 
-  it("should copy listeners from parent bus", () => {
+  it("should copy listeners from parent bus", async () => {
     const listener = vi.fn(() => {});
     messageBus.addListener(listener);
     expect(listener).toHaveBeenCalledTimes(0);
 
     const childBus = messageBus.createChildBus();
     childBus.publish(TestTopic, "one");
+    await waitForPromisesAndFakeTimers();
 
-    vi.runAllTimers();
     expect(listener).toHaveBeenCalledExactlyOnceWith(TestTopic, "one", 0);
   });
 
@@ -335,7 +346,7 @@ describe("MessageBus", () => {
     messageBus.subscribe(CharCountTopic, (data) => data.length * 2);
 
     const promise = messageBus.publishAsync(CharCountTopic, "one");
-    await vi.runAllTimersAsync();
+    await waitForPromisesAndFakeTimers();
 
     const counts = await promise;
     expect(counts).toHaveLength(2);
@@ -348,10 +359,8 @@ describe("MessageBus", () => {
     messageBus.subscribe(CharCountTopic, (data) => data.length);
 
     const promise = messageBus.publishAsync(CharCountTopic, "one");
-    await vi.runAllTimersAsync();
-
-    const count = await promise;
-    expect(count).toBe(3);
+    await waitForPromisesAndFakeTimers();
+    await expect(promise).resolves.toBe(3);
   });
 
   it("should publish and await a rejected promise with an error from the topic handlers", async () => {
@@ -362,8 +371,7 @@ describe("MessageBus", () => {
     });
 
     const promise = messageBus.publishAsync(CharCountTopic, "one");
-    await vi.runAllTimersAsync();
-
+    await waitForPromisesAndFakeTimers();
     await expect(promise).rejects.toThrowError(new Error("error 1 for one"));
   });
 
@@ -377,7 +385,7 @@ describe("MessageBus", () => {
     });
 
     const promise = messageBus.publishAsync(CharCountTopic, "one");
-    await vi.runAllTimersAsync();
+    await waitForPromisesAndFakeTimers();
 
     await expect(promise).rejects.toThrowError(
       new AggregateError([
