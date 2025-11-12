@@ -7,6 +7,7 @@ import type {
   MessageBus,
   MessageBusOptions,
   MessageHandler,
+  MessageInterceptor,
   MessageListener,
   Subscription,
   SubscriptionBuilder,
@@ -26,7 +27,13 @@ type Message = {
 type MessageResult = {
   readonly values: unknown[];
   readonly errors: unknown[];
+  readonly vetoed?: boolean;
 };
+
+interface AsyncMessageInterceptor {
+  handler: (topic: Topic, data: unknown, next: MessageHandler) => Promise<unknown>;
+  isVetoed: (topic: Topic, data: unknown) => Promise<boolean>;
+}
 
 // @internal
 export class MessageBusImpl implements MessageBus {
@@ -35,14 +42,22 @@ export class MessageBusImpl implements MessageBus {
   private readonly myRegistry = new SubscriptionRegistry();
   private readonly myPublishQueue: (() => void)[] = [];
   private readonly myListeners: Set<MessageListener>;
+  private readonly myInterceptors: Set<MessageInterceptor>;
   private readonly myOptions: Required<MessageBusOptions>;
 
+  private myInterceptor?: AsyncMessageInterceptor;
   private myPublishing: boolean = false;
   private myDisposed: boolean = false;
 
-  constructor(parent?: MessageBusImpl, listeners?: Set<MessageListener>, options?: MessageBusOptions) {
+  constructor(
+    parent?: MessageBusImpl,
+    listeners?: Set<MessageListener>,
+    interceptors?: Set<MessageInterceptor>,
+    options?: MessageBusOptions,
+  ) {
     this.myParent = parent;
     this.myListeners = listeners ?? new Set();
+    this.myInterceptors = interceptors ?? new Set();
     this.myOptions = {
       // prettier-ignore
       errorHandler: options?.errorHandler ?? ((e) => {
@@ -59,7 +74,8 @@ export class MessageBusImpl implements MessageBus {
     this.checkDisposed();
 
     const listeners = options?.copyListeners === false ? undefined : new Set(this.myListeners);
-    const childBus = new MessageBusImpl(this, listeners, {
+    const interceptors = options?.copyInterceptors === false ? undefined : new Set(this.myInterceptors);
+    const childBus = new MessageBusImpl(this, listeners, interceptors, {
       errorHandler: options?.errorHandler ?? this.myOptions.errorHandler,
     });
 
@@ -87,12 +103,14 @@ export class MessageBusImpl implements MessageBus {
       awaitable: true,
     });
 
-    return result.then(({ values, errors }) => {
+    return result.then(({ values, errors, vetoed }) => {
       if (errors.length > 0) {
         throw errors.length > 1 ? new AggregateError(errors) : errors[0];
       }
 
+      check(vetoed !== false, () => `publishing to ${topic.toString()} has been vetoed`);
       check(values.length > 0, () => `no subscribers for ${topic.toString()}`);
+
       const isMulticast = topic.mode === "multicast";
       check(isMulticast || values.length === 1, () => `multiple result values for ${topic.toString()}`);
       return isMulticast ? values : values[0];
@@ -161,11 +179,18 @@ export class MessageBusImpl implements MessageBus {
     this.myListeners.delete(listener);
   }
 
-  clearListeners(): MessageListener[] {
+  addInterceptor(interceptor: MessageInterceptor): void {
     this.checkDisposed();
-    const listeners = Array.from(this.myListeners);
-    this.myListeners.clear();
-    return listeners;
+    this.myInterceptors.add(interceptor);
+    this.myInterceptor = undefined;
+  }
+
+  removeInterceptor(interceptor: MessageInterceptor): void {
+    this.checkDisposed();
+
+    if (this.myInterceptors.delete(interceptor)) {
+      this.myInterceptor = undefined;
+    }
   }
 
   dispose(): void {
@@ -178,6 +203,8 @@ export class MessageBusImpl implements MessageBus {
     // Remove this bus from the parent's child buses
     this.myParent?.myChildren?.delete(this);
     this.myListeners.clear();
+    this.myInterceptors.clear();
+    this.myInterceptor = undefined;
 
     // Dispose all registrations (a.k.a. subscriptions) created by this bus
     for (const registration of this.myRegistry.registrations) {
@@ -206,7 +233,29 @@ export class MessageBusImpl implements MessageBus {
     });
   }
 
-  private publishMessage({ topic, data, broadcast, listeners, awaitable }: Message): Promise<MessageResult> {
+  private publishMessage(message: Message): Promise<MessageResult> {
+    const interceptor = (this.myInterceptor ??= this.createInterceptor());
+    const result = interceptor.isVetoed(message.topic, message.data).catch((e) => {
+      if (message.awaitable) {
+        throw e;
+      }
+
+      this.handleError(e);
+      return undefined;
+    });
+
+    return result.then((vetoed) => {
+      if (vetoed !== false) {
+        return { values: [], errors: [], vetoed };
+      }
+
+      return this.dispatchMessage(message, interceptor);
+    });
+  }
+
+  private dispatchMessage(message: Message, interceptor: AsyncMessageInterceptor): Promise<MessageResult> {
+    const { topic, data, broadcast, listeners, awaitable } = message;
+
     // Consider only active registrations.
     // In addition, sort them by priority: a lower priority value means being invoked first.
     const registrations = this.myRegistry.getAll(topic, true).sort((a, b) => a.priority - b.priority);
@@ -239,37 +288,34 @@ export class MessageBusImpl implements MessageBus {
     }
 
     const values: Promise<unknown>[] = registrations.map((r) => {
-      try {
-        return Promise.resolve(r.handler(data)).catch((e) => {
-          if (awaitable) {
-            throw e;
-          }
+      // Possible synchronous errors thrown from the registration handler
+      // or from interceptors are caught by the aggregate interceptor,
+      // so the 'catch' code path is always the asynchronous one
+      const value =
+        // If the registration is an async registration (it does not have a
+        // user-defined handler) we MUST call LazyAsyncRegistration.handler
+        // to advance the message limit and data queue machinery.
+        // prettier-ignore
+        r instanceof LazyAsyncRegistration
+          ? interceptor.handler(topic, data, (d) => d).then((d) => r.handler(d))
+          : interceptor.handler(topic, data, r.handler);
 
-          this.handleError(e);
-
-          // Since fire-and-forget publishing does not use handler results,
-          // we can simply return undefined. It will never be considered.
-          return undefined;
-        });
-      } catch (e) {
+      return value.catch((e) => {
         if (awaitable) {
-          return Promise.reject(e);
+          throw e;
         }
 
         this.handleError(e);
 
         // Since fire-and-forget publishing does not use handler results,
-        // we can simply return a successfully completed promise
-        return Promise.resolve();
-      }
+        // we can simply return undefined. It will never be considered.
+        return undefined;
+      });
     });
 
     // Return immediately if there are no subscribers to avoid heavy promise-based code
     if (!awaitable || (values.length === 0 && broadcastResults.length === 0)) {
-      return Promise.resolve({
-        values: [],
-        errors: [],
-      });
+      return Promise.resolve({ values: [], errors: [] });
     }
 
     const result = Promise.allSettled(values).then((results): MessageResult => {
@@ -321,6 +367,45 @@ export class MessageBusImpl implements MessageBus {
     } while (stack.length > 0);
 
     return false;
+  }
+
+  private createInterceptor(): AsyncMessageInterceptor {
+    const interceptors = Array.from(this.myInterceptors);
+
+    // This represents the innermost call
+    let handler = (_: Topic, data: unknown, next: MessageHandler): Promise<unknown> => {
+      try {
+        return Promise.resolve(next(data));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+
+    for (const interceptor of interceptors) {
+      const inner = handler;
+      handler = (topic, data, next) => {
+        try {
+          return Promise.resolve(interceptor.handler(topic, data, (d) => inner(topic, d, next)));
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      };
+    }
+
+    return {
+      handler: handler,
+      isVetoed: async (topic, data) => {
+        // As the rule is the most recently added interceptor wraps all previously added ones,
+        // we must obey to the same constraint when calling isVetoed, so we loop in reverse
+        for (let i = interceptors.length - 1; i > -1; i--) {
+          if (await interceptors[i]!.isVetoed?.(topic, data)) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+    };
   }
 
   private getRootBus(): MessageBusImpl {

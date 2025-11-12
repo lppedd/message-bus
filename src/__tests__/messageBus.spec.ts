@@ -158,7 +158,7 @@ describe("MessageBus", () => {
     messageBus.publish(TestTopic, "throws");
     await waitForPromisesAndFakeTimers();
 
-    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2), 500);
+    await vi.waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(2));
     const msg = "[message-bus] caught unhandled error.";
     expect(consoleErrorSpy).toHaveBeenNthCalledWith(1, msg, new Error("error occurred in handler 1"));
     expect(consoleErrorSpy).toHaveBeenNthCalledWith(2, msg, new Error("async error occurred in handler 2"));
@@ -395,16 +395,34 @@ describe("MessageBus", () => {
     );
   });
 
-  it("should clear message listeners", () => {
-    const l1 = (): void => {};
-    const l2 = (): void => {};
-    messageBus.addListener(l1);
-    messageBus.addListener(l2);
+  it("should intercept and modify a message payload", async () => {
+    // Handler 1
+    messageBus.addInterceptor({
+      isVetoed: () => false,
+      handler: async (_, data, handler) => {
+        // handler = original subscription handler
+        const result = (await handler(data)) as string;
+        return `${result} 1`;
+      },
+    });
 
-    const listeners = messageBus.clearListeners();
-    expect(listeners).toHaveLength(2);
-    expect(listeners[0]).toBe(l1);
-    expect(listeners[1]).toBe(l2);
+    // Handler 2
+    // Will be called first, and will forward to Handler 1
+    messageBus.addInterceptor({
+      isVetoed: () => false,
+      handler: async (_, data, handler) => {
+        // handler = Handler 1
+        const result = (await handler(data)) as string;
+        return `${result} 2`;
+      },
+    });
+
+    const InterceptedTopic = createTopic<string, string>("Intercepted");
+    messageBus.subscribe(InterceptedTopic, (data) => `${data} 0`);
+
+    const promise = messageBus.publishAsync(InterceptedTopic, "test");
+    await waitForPromisesAndFakeTimers();
+    await expect(promise).resolves.toEqual(["test 0 1 2"]);
   });
 
   it("should throw if the message bus is disposed", () => {
