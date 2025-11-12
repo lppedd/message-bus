@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- Reworked generic type parameters for improved type inference and stricter type safety.
+
 ## 0.4.4
 
 - Added `MessageBus.clearListeners` to remove all message listeners at once.
