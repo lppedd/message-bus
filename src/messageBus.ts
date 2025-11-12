@@ -43,6 +43,70 @@ export type MessageHandler<T = unknown, R = unknown> = (data: T) => R | Promise<
  */
 export type MessageListener = (topic: Topic, data: unknown, activeSubscriptions: number) => void | Promise<void>;
 
+/**
+ * A message interceptor that allows observing, modifying, or preventing
+ * message dispatch before messages are dispatched to topic subscribers.
+ *
+ * A `MessageInterceptor` can:
+ * - Veto (cancel) message dispatching entirely via {@link isVetoed}.
+ * - Wrap or replace the topic's handler invocation logic via {@link handler}.
+ *
+ * Message interceptors are registered using {@link MessageBus.addInterceptor}.
+ */
+export interface MessageInterceptor {
+  /**
+   * A function to optionally wrap or replace the original topic's subscription handler.
+   *
+   * This method is invoked before the topic's subscriber handler executes.
+   * Implementations can transform the message payload, inject behavior
+   * (such as logging or timing), or completely replace the handler logic.
+   *
+   * The returned value, or resolved promise value, becomes the handler's result.
+   *
+   * @example
+   * ```ts
+   * const perfInterceptor: MessageInterceptor = {
+   *   handler: async (topic, data, next) => {
+   *     const start = performance.now();
+   *     const result = await next(data);
+   *     const duration = performance.now() - start;
+   *     console.log(`Handler for ${topic.toString()} took ${duration.toFixed(2)} ms`);
+   *     return result;
+   *   },
+   * };
+   * ```
+   *
+   * @param topic The topic being published to.
+   * @param data The message payload associated with the publication.
+   * @param next The original {@link MessageHandler} registered for the topic.
+   *   The interceptor may call it to invoke the next handler in the chain.
+   */
+  handler: (topic: Topic, data: unknown, next: MessageHandler) => unknown | Promise<unknown>;
+
+  /**
+   * An optional function to determine whether a message for the given topic
+   * should be vetoed (prevented from being dispatched to subscribers).
+   *
+   * If this method returns or resolves to `true`, the message will not be dispatched
+   * to any subscribers, and subsequent interceptors will not be evaluated.
+   *
+   * @example
+   * ```ts
+   * const authInterceptor: MessageInterceptor = {
+   *   isVetoed: async (topic, data) => {
+   *     const user = await getCurrentUser();
+   *     return !user.hasPermission(topic);
+   *   },
+   *   handler: (_, data, next) => next(data),
+   * };
+   * ```
+   *
+   * @param topic The topic being published to.
+   * @param data The message payload associated with the publication.
+   */
+  isVetoed?: (topic: Topic, data: unknown) => boolean | Promise<boolean>;
+}
+
 export interface MessageBusOptions {
   /**
    * A handler for errors thrown from message handlers.
@@ -61,6 +125,13 @@ export interface ChildMessageBusOptions extends MessageBusOptions {
    * @defaultValue true
    */
   readonly copyListeners?: boolean;
+
+  /**
+   * Whether to copy {@link MessageInterceptor}(s) from the parent bus.
+   *
+   * @defaultValue true
+   */
+  readonly copyInterceptors?: boolean;
 }
 
 /**
@@ -441,10 +512,9 @@ export interface MessageBus {
    * published on this message bus, regardless of topic.
    *
    * Listeners are invoked **before** any topic-specific subscribers.
-   * This allows observing messages even if no subscriber exists or if
-   * a subscriber throws an unrecoverable error.
+   * This allows observing messages even if no subscriber for a topic exists.
    *
-   * @param listener A callback invoked with the topic and message data.
+   * @param listener The listener to add.
    */
   addListener(listener: MessageListener): void;
 
@@ -456,9 +526,24 @@ export interface MessageBus {
   removeListener(listener: MessageListener): void;
 
   /**
-   * Removes and returns all previously added {@link MessageListener}(s).
+   * Adds a new message interceptor to the bus.
+   *
+   * Message interceptors allow inspecting, modifying, or vetoing
+   * messages before they are dispatched to subscribed handlers.
+   *
+   * Interceptors are invoked in reverse order of registration: the most
+   * recently added interceptor will wrap all previously added ones.
+   *
+   * @param interceptor The interceptor to add.
    */
-  clearListeners(): MessageListener[];
+  addInterceptor(interceptor: MessageInterceptor): void;
+
+  /**
+   * Removes a previously added message interceptor.
+   *
+   * @param interceptor The interceptor to remove.
+   */
+  removeInterceptor(interceptor: MessageInterceptor): void;
 
   /**
    * Disposes the message bus, all its child buses, and all active subscriptions.
@@ -472,5 +557,5 @@ export interface MessageBus {
  * Creates a new message bus.
  */
 export function createMessageBus(options?: MessageBusOptions): MessageBus {
-  return new MessageBusImpl(undefined, undefined, options);
+  return new MessageBusImpl(undefined, undefined, undefined, options);
 }
