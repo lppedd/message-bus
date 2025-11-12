@@ -8,14 +8,14 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   private readonly myDataQueue: unknown[] = [];
   private readonly myPromiseQueue: [(v: IteratorResult<unknown>) => void, (e?: any) => void][] = [];
   private readonly myRegistry: SubscriptionRegistry;
-  private readonly myTopics: Topic<unknown, unknown>[];
+  private readonly myTopics: Topic[];
 
   isActive: boolean = false;
   isDisposed: boolean = false;
   remaining: number;
   priority: number;
 
-  constructor(registry: SubscriptionRegistry, topics: Topic<unknown, unknown>[], limit: number, priority: number) {
+  constructor(registry: SubscriptionRegistry, topics: Topic[], limit: number, priority: number) {
     this.myRegistry = registry;
     this.myTopics = topics;
     this.remaining = limit;
