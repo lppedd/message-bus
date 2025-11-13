@@ -43,7 +43,7 @@ export class MessageBusImpl implements MessageBus {
   private readonly myPublishQueue: (() => void)[] = [];
   private readonly myListeners: Set<MessageListener>;
   private readonly myInterceptors: Set<MessageInterceptor>;
-  private readonly myOptions: Required<MessageBusOptions>;
+  private readonly myOptions: MessageBusOptions;
 
   private myInterceptor?: AsyncMessageInterceptor;
   private myPublishing: boolean = false;
@@ -53,7 +53,7 @@ export class MessageBusImpl implements MessageBus {
     parent?: MessageBusImpl,
     listeners?: Set<MessageListener>,
     interceptors?: Set<MessageInterceptor>,
-    options?: MessageBusOptions,
+    options?: Partial<MessageBusOptions>,
   ) {
     this.myParent = parent;
     this.myListeners = listeners ?? new Set();
@@ -70,7 +70,7 @@ export class MessageBusImpl implements MessageBus {
     return this.myDisposed;
   }
 
-  createChildBus(options?: ChildMessageBusOptions): MessageBus {
+  createChildBus(options?: Partial<ChildMessageBusOptions>): MessageBus {
     this.checkDisposed();
 
     const listeners = options?.copyListeners === false ? undefined : new Set(this.myListeners);
