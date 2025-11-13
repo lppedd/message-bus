@@ -82,16 +82,6 @@ export type Topics<T extends [any, ...any[]]> = {
  */
 export interface TopicOptions {
   /**
-   * Whether the topic allows multiple subscriptions or only a single subscription.
-   *
-   * - `multicast`: the topic can have multiple subscribers
-   * - `unicast`: the topic can have at most one subscriber
-   *
-   * @defaultValue multicast
-   */
-  readonly mode?: "multicast" | "unicast";
-
-  /**
    * The broadcasting direction for a topic.
    *
    * A message published to the topic will always be delivered first to handlers
@@ -103,14 +93,7 @@ export interface TopicOptions {
    *
    * @defaultValue children
    */
-  readonly broadcastDirection?: "children" | "parent";
-}
-
-/**
- * Unicast topic behavior customizations.
- */
-export interface UnicastTopicOptions extends TopicOptions {
-  readonly mode: "unicast";
+  readonly broadcastDirection: "children" | "parent";
 }
 
 /**
@@ -118,7 +101,7 @@ export interface UnicastTopicOptions extends TopicOptions {
  *
  * @example
  * ```ts
- * const EnvTopic = createTopic<string>("Env", { mode: "unicast" });
+ * const EnvTopic = createUnicastTopic<string>("Env");
  * messageBus.subscribe(EnvTopic, (data) => console.log(data));
  * messageBus.publish(EnvTopic, "production"); // => 'production' logged to the console
  * ```
@@ -126,7 +109,12 @@ export interface UnicastTopicOptions extends TopicOptions {
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T, R = void>(displayName: string, options: UnicastTopicOptions): UnicastTopic<T, R>;
+export function createUnicastTopic<T, R = void>(
+  displayName: string,
+  options?: Partial<TopicOptions>,
+): UnicastTopic<T, R> {
+  return createTopicInternal(displayName, "unicast", options) as UnicastTopic;
+}
 
 /**
  * Creates a new {@link Topic} that can be used to publish or subscribe to messages.
@@ -141,16 +129,16 @@ export function createTopic<T, R = void>(displayName: string, options: UnicastTo
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T, R = void>(displayName: string, options?: TopicOptions): Topic<T, R>;
+export function createTopic<T, R = void>(displayName: string, options?: Partial<TopicOptions>): Topic<T, R> {
+  return createTopicInternal(displayName, "multicast", options);
+}
 
-// @internal
-export function createTopic<T, R = void>(displayName: string, options?: TopicOptions): Topic<T, R> {
-  const topicOptions: Required<TopicOptions> = {
-    mode: options?.mode ?? "multicast",
-    broadcastDirection: options?.broadcastDirection ?? "children",
-  };
-
-  const topicName = `${topicOptions.mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
+function createTopicInternal<T, R>(
+  displayName: string,
+  mode: "unicast" | "multicast",
+  options?: Partial<TopicOptions>,
+): Topic<T, R> {
+  const topicName = `${mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
   const topic = (priority: number = defaultPriority): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
@@ -186,8 +174,8 @@ export function createTopic<T, R = void>(displayName: string, options?: TopicOpt
 
   const writableTopic = topic as unknown as Writable<Topic>;
   writableTopic.displayName = topicName;
-  writableTopic.mode = topicOptions.mode;
-  writableTopic.broadcastDirection = topicOptions.broadcastDirection;
+  writableTopic.mode = mode;
+  writableTopic.broadcastDirection = options?.broadcastDirection ?? "children";
   writableTopic.toString = () => topicName;
 
   return writableTopic as Topic;

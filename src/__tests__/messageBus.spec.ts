@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } fr
 
 import { AutoSubscribe } from "../autoSubscribe";
 import { createMessageBus } from "../messageBus";
-import { createTopic } from "../topic";
+import { createTopic, createUnicastTopic } from "../topic";
 
 const waitForPromisesAndFakeTimers = async (): Promise<void> => {
   do {
@@ -338,7 +338,7 @@ describe("MessageBus", () => {
     expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
     expect(() => messageBus.subscribe(TestTopic)).not.toThrow();
 
-    const UnicastTestTopic = createTopic("UnicastTest", { mode: "unicast" });
+    const UnicastTestTopic = createUnicastTopic("UnicastTest");
     expect(() => messageBus.subscribe(UnicastTestTopic)).not.toThrow();
     expect(() => messageBus.subscribe(UnicastTestTopic)).toThrowErrorMatchingInlineSnapshot(
       `[Error: [message-bus] UnicastTopic<UnicastTest> allows only a single subscription]`,
@@ -360,7 +360,7 @@ describe("MessageBus", () => {
   });
 
   it("should publish and await the unicast topic handler", async () => {
-    const CharCountTopic = createTopic<string, number>("CharCount", { mode: "unicast" });
+    const CharCountTopic = createUnicastTopic<string, number>("CharCount");
     messageBus.subscribe(CharCountTopic, (data) => data.length);
 
     const promise = messageBus.publishAsync(CharCountTopic, "one");
