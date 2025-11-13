@@ -294,8 +294,7 @@ export class MessageBusImpl implements MessageBus {
       const value =
         // If the registration is an async registration (it does not have a
         // user-defined handler) we MUST call LazyAsyncRegistration.handler
-        // to advance the message limit and data queue machinery.
-        // prettier-ignore
+        // to advance the message limit and data queue machinery
         r instanceof LazyAsyncRegistration
           ? interceptor.handler(topic, data, (d) => d).then((d) => r.handler(d))
           : interceptor.handler(topic, data, r.handler);

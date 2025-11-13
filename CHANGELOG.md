@@ -3,8 +3,7 @@
 ## 0.6.0
 
 - Introduced message interceptors. An interceptor allows inspecting, modifying, or vetoing messages
-  before they are dispatched to subscribed handlers.
-
+  before they are dispatched to subscribed handlers.  
   Interceptors can be added via `MessageBus.addInterceptor` and removed via `MessageBus.removeInterceptor`.
 - Removed `MessageBus.clearListeners`.
 
