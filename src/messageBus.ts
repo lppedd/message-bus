@@ -2,6 +2,15 @@ import { MessageBusImpl } from "./messageBusImpl";
 import type { Topic, Topics, UnicastTopic } from "./topic";
 
 /**
+ * Prevents the TS compiler from performing only structural matching on `T`.
+ *
+ * Without this type, passing an inline plain object to `publish<T>(Topic<T>, T)`
+ * would result in missing editor assistance (no go-to declaration, find usages,
+ * refactoring), and in being able to add properties not declared by the type `T`.
+ */
+type Strict<T> = T extends T ? T : T;
+
+/**
  * A function that handles messages published to a specific {@link Topic}.
  *
  * Message handlers are registered using {@link MessageBus.subscribe} or {@link MessageBus.subscribeOnce}.
@@ -327,7 +336,7 @@ export interface MessageBus {
    * @param topic The topic to publish the message to.
    * @param data The data payload to send with the message.
    */
-  publish<T>(topic: Topic<T, void>, data: T): void;
+  publish<T>(topic: Topic<T, void>, data: Strict<T>): void;
 
   /**
    * Asynchronously publishes a new message without any associated data
@@ -386,8 +395,8 @@ export interface MessageBus {
    * @returns A promise that resolves with the handler result(s),
    *   or rejects if any handler throws.
    */
-  publishAsync<T, R = void>(topic: UnicastTopic<T, R>, data: T): Promise<R>;
-  publishAsync<T, R = void>(topic: Topic<T, R>, data: T): Promise<R[]>;
+  publishAsync<T, R = void>(topic: UnicastTopic<T, R>, data: Strict<T>): Promise<R>;
+  publishAsync<T, R = void>(topic: Topic<T, R>, data: Strict<T>): Promise<R[]>;
 
   /**
    * Creates a lazily-initialized subscription to the specified topic that is also
