@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.3
+
+- Fixed package exports.
+
 ## 0.6.2
 
 - Refactored topic creation to use separate functions for `unicast` and `multicast` topics.
