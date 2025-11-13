@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.2
+
+- Refactored topic creation to use separate functions for `unicast` and `multicast` topics.
+- Simplified `MessageBusOptions` by replacing nullable properties with non-nullable equivalents.
+
 ## 0.6.1
 
 - Improved TypeScript type checking for message data passed to `MessageBus.publish` and `MessageBus.publishAsync`.
