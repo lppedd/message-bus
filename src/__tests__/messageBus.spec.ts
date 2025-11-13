@@ -15,18 +15,21 @@ const waitForPromisesAndFakeTimers = async (): Promise<void> => {
 
 describe("MessageBus", () => {
   let messageBus = createMessageBus();
-  let consoleErrorSpy: MockInstance<typeof console.error>;
+  let consoleErrorSpy: MockInstance<typeof console.error> | undefined;
 
   const TestTopic = createTopic<string>("Test");
 
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    consoleErrorSpy.mockRestore();
+
+    if (consoleErrorSpy) {
+      consoleErrorSpy.mockRestore();
+      consoleErrorSpy = undefined;
+    }
 
     messageBus.dispose();
     messageBus = createMessageBus();
@@ -145,6 +148,8 @@ describe("MessageBus", () => {
   });
 
   it("should intercept unhandled errors coming from multiple message handlers", async () => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     messageBus.subscribe(TestTopic, () => {
       throw new Error("error occurred in handler 1");
     });
