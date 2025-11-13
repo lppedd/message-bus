@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Improved TypeScript type checking for message data passed to `MessageBus.publish` and `MessageBus.publishAsync`.
+
 ## 0.6.0
 
 - Introduced message interceptors. An interceptor allows inspecting, modifying, or vetoing messages
