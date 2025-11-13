@@ -33,7 +33,7 @@ export type MessageHandler<T = unknown, R = unknown> = (data: T) => R | Promise<
  * @example
  * ```ts
  * bus.addListener((topic, data, activeSubscriptions) => {
- *   console.debug(`Published to ${topic.toString()} (${activeSubscriptions} subscribers)`, data);
+ *   console.debug(`Published to ${topic} (${activeSubscriptions} subscribers)`, data);
  * });
  * ```
  *
@@ -70,7 +70,7 @@ export interface MessageInterceptor {
    *     const start = performance.now();
    *     const result = await next(data);
    *     const duration = performance.now() - start;
-   *     console.log(`Handler for ${topic.toString()} took ${duration.toFixed(2)} ms`);
+   *     console.log(`Handler for ${topic} took ${duration.toFixed(2)} ms`);
    *     return result;
    *   },
    * };

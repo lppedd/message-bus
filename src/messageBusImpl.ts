@@ -108,11 +108,11 @@ export class MessageBusImpl implements MessageBus {
         throw errors.length > 1 ? new AggregateError(errors) : errors[0];
       }
 
-      check(vetoed !== false, () => `publishing to ${topic.toString()} has been vetoed`);
-      check(values.length > 0, () => `no subscribers for ${topic.toString()}`);
+      check(vetoed !== false, () => `publishing to ${topic} has been vetoed`);
+      check(values.length > 0, () => `no subscribers for ${topic}`);
 
       const isMulticast = topic.mode === "multicast";
-      check(isMulticast || values.length === 1, () => `multiple result values for ${topic.toString()}`);
+      check(isMulticast || values.length === 1, () => `multiple result values for ${topic}`);
       return isMulticast ? values : values[0];
     });
   }
@@ -149,7 +149,7 @@ export class MessageBusImpl implements MessageBus {
 
     for (const topic of topics) {
       check(topic.mode === "multicast" || !this.hasSubscription(topic), () => {
-        return `${topic.toString()} allows only a single subscription`;
+        return `${topic} allows only a single subscription`;
       });
     }
 
