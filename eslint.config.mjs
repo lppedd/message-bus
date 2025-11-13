@@ -74,13 +74,6 @@ export default tseslint.config(
           allowDeclarations: true,
         },
       ],
-      // HACK: https://github.com/jsr-io/jsr/issues/780
-      "@typescript-eslint/no-unnecessary-type-assertion": [
-        "error",
-        {
-          typesToIgnore: ["Type<null>", "Type<undefined>"],
-        },
-      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -94,6 +87,23 @@ export default tseslint.config(
         {
           allowThrowingAny: true,
           allowThrowingUnknown: true,
+        },
+      ],
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        {
+          allow: [
+            {
+              from: "file",
+              name: "Topic",
+              path: "src/topic.ts",
+            },
+            {
+              from: "file",
+              name: "UnicastTopic",
+              path: "src/topic.ts",
+            },
+          ],
         },
       ],
       "@typescript-eslint/no-redundant-type-constituents": "off",
