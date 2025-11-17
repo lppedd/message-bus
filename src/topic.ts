@@ -113,7 +113,7 @@ export function createUnicastTopic<T = void, R = void>(
   displayName: string,
   options?: Partial<TopicOptions>,
 ): UnicastTopic<T, R> {
-  return createTopicInternal(displayName, "unicast", options) as UnicastTopic;
+  return createTopicByMode(displayName, "unicast", options);
 }
 
 /**
@@ -129,15 +129,16 @@ export function createUnicastTopic<T = void, R = void>(
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T = void, R = void>(displayName: string, options?: Partial<TopicOptions>): Topic<T, R> {
-  return createTopicInternal(displayName, "multicast", options);
-}
-
-function createTopicInternal<T, R>(
-  displayName: string,
-  mode: "unicast" | "multicast",
+export function createTopic<T = void, R = void>(
+  displayName: string, //
   options?: Partial<TopicOptions>,
 ): Topic<T, R> {
+  return createTopicByMode(displayName, "multicast", options);
+}
+
+/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "unicast", options?: Partial<TopicOptions>): UnicastTopic<T, R>;
+/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "multicast", options?: Partial<TopicOptions>): Topic<T, R>;
+/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "unicast" | "multicast", options?: Partial<TopicOptions>): Topic<T, R> {
   const topicName = `${mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
   const topic = (priority: number = defaultPriority): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
