@@ -24,6 +24,7 @@ type Strict<T> = T extends T ? T : T;
  * ```
  *
  * @param data The payload sent with the topic message.
+ * @param other Optional additional message handler arguments injected by {@link MessageInterceptor}(s).
  * @returns The handler's result, which may be returned synchronously or as a promise.
  *  Defaults to `void`, which means nothing is returned.
  *
@@ -31,7 +32,7 @@ type Strict<T> = T extends T ? T : T;
  * @template R The type of the value returned by the handler.
  *   Defaults to `void`, which means nothing is returned.
  */
-export type MessageHandler<T = unknown, R = unknown> = (data: T) => R | Promise<R>;
+export type MessageHandler<T = unknown, R = unknown> = (data: T, ...other: any[]) => R | Promise<R>;
 
 /**
  * A listener function that observes all messages being published through a {@link MessageBus},
@@ -86,11 +87,12 @@ export interface MessageInterceptor {
    * ```
    *
    * @param topic The topic being published to.
-   * @param data The message payload associated with the publication.
    * @param next The original {@link MessageHandler} registered for the topic.
    *   The interceptor may call it to invoke the next handler in the chain.
+   * @param data The message payload associated with the publication.
+   * @param other Optional additional message handler arguments injected by the interceptor chain.
    */
-  handler: (topic: Topic, data: unknown, next: MessageHandler) => unknown | Promise<unknown>;
+  handler: (topic: Topic, next: MessageHandler, data: unknown, ...other: any[]) => unknown | Promise<unknown>;
 
   /**
    * An optional function to determine whether a message for the given topic

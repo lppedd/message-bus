@@ -32,7 +32,7 @@ export class HandlerRegistration implements Registration {
     }
   }
 
-  handler = (data: unknown): unknown | Promise<unknown> => {
+  handler = (data: unknown, ...other: any[]): unknown | Promise<unknown> => {
     if (this.remaining === 0) {
       this.dispose();
       return;
@@ -42,7 +42,7 @@ export class HandlerRegistration implements Registration {
       this.remaining--;
     }
 
-    return this.myHandler(data);
+    return this.myHandler(data, ...other);
   };
 
   dispose = (): void => {

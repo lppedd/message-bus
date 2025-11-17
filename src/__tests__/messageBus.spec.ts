@@ -404,9 +404,9 @@ describe("MessageBus", () => {
     // Handler 1
     messageBus.addInterceptor({
       isVetoed: () => false,
-      handler: async (_, data, handler) => {
+      handler: async (_, handler, data, ...other) => {
         // handler = original subscription handler
-        const result = (await handler(data)) as string;
+        const result = (await handler(data, "Handler1", ...other)) as string;
         return `${result} 1`;
       },
     });
@@ -415,19 +415,21 @@ describe("MessageBus", () => {
     // Will be called first, and will forward to Handler 1
     messageBus.addInterceptor({
       isVetoed: () => false,
-      handler: async (_, data, handler) => {
+      handler: async (_, handler, data) => {
         // handler = Handler 1
-        const result = (await handler(data)) as string;
+        const result = (await handler(data, "Handler2")) as string;
         return `${result} 2`;
       },
     });
 
     const InterceptedTopic = createTopic<string, string>("Intercepted");
-    messageBus.subscribe(InterceptedTopic, (data) => `${data} 0`);
+    messageBus.subscribe(InterceptedTopic, (data, handler1: string, handler2: string) => {
+      return `${handler1} ${handler2} ${data} 0`;
+    });
 
     const promise = messageBus.publishAsync(InterceptedTopic, "test");
     await waitForPromisesAndFakeTimers();
-    await expect(promise).resolves.toEqual(["test 0 1 2"]);
+    await expect(promise).resolves.toEqual(["Handler1 Handler2 test 0 1 2"]);
   });
 
   it("should throw if the message bus is disposed", () => {

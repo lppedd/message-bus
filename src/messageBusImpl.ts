@@ -31,8 +31,8 @@ type MessageResult = {
 };
 
 interface AsyncMessageInterceptor {
-  handler: (topic: Topic, data: unknown, next: MessageHandler) => Promise<unknown>;
-  isVetoed: (topic: Topic, data: unknown) => Promise<boolean>;
+  readonly handler: (topic: Topic, next: MessageHandler, data: unknown, ...other: any[]) => Promise<unknown>;
+  readonly isVetoed: (topic: Topic, data: unknown) => Promise<boolean>;
 }
 
 // @internal
@@ -296,8 +296,8 @@ export class MessageBusImpl implements MessageBus {
         // user-defined handler) we MUST call LazyAsyncRegistration.handler
         // to advance the message limit and data queue machinery
         r instanceof LazyAsyncRegistration
-          ? interceptor.handler(topic, data, (d) => d).then((d) => r.handler(d))
-          : interceptor.handler(topic, data, r.handler);
+          ? interceptor.handler(topic, (d) => d, data).then((d) => r.handler(d))
+          : interceptor.handler(topic, r.handler, data);
 
       return value.catch((e) => {
         if (awaitable) {
@@ -372,9 +372,10 @@ export class MessageBusImpl implements MessageBus {
     const interceptors = Array.from(this.myInterceptors);
 
     // This represents the innermost call
-    let handler = (_: Topic, data: unknown, next: MessageHandler): Promise<unknown> => {
+    let handler = (_: Topic, next: MessageHandler, data: unknown, ...other: any[]): Promise<unknown> => {
       try {
-        return Promise.resolve(next(data));
+        // 'next' is the real underlying handler
+        return Promise.resolve(next(data, ...other));
       } catch (e) {
         return Promise.reject(e);
       }
@@ -382,9 +383,9 @@ export class MessageBusImpl implements MessageBus {
 
     for (const interceptor of interceptors) {
       const inner = handler;
-      handler = (topic, data, next) => {
+      handler = (topic, next, ...args) => {
         try {
-          return Promise.resolve(interceptor.handler(topic, data, (d) => inner(topic, d, next)));
+          return Promise.resolve(interceptor.handler(topic, (...a) => inner(topic, next, ...a), ...args));
         } catch (e) {
           return Promise.reject(e);
         }
