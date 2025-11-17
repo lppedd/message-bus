@@ -35,7 +35,6 @@ export function AutoSubscribe<Ctor extends Constructor<object>>(
   return function (Class: Ctor): Ctor {
     const subClass = class extends Class {
       constructor(...args: any[]) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         super(...args);
 
         const metadata = getMetadata(Class);
