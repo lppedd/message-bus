@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.1
+
+- Changed `createTopic` and `createUnicastTopic` to default the payload type `T` to `void`.  
+  Topics without a message payload no longer require specifying a type explicitly:
+
+  ```ts
+  // Before
+  const PingTopic = createTopic<void>("Ping");
+  
+  // After
+  const PingTopic = createTopic("Ping");
+  ```
+- Cleaned up internal code.
+
 ## 0.7.0
 
 - Added support for passing arbitrary additional arguments from interceptors to message handlers.  
