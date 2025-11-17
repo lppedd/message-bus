@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+- Added support for passing arbitrary additional arguments from interceptors to message handlers.  
+  The `MessageInterceptor.handler` signature allows passing extra parameters to the downstream `MessageHandler`.
+
+  ```ts
+  messageBus.addInterceptor({              /* ...other: any[] */
+    handler: (_, next, data) => next(data, appContext, internal)
+  });
+  ```
+
 ## 0.6.3
 
 - Fixed package exports.
