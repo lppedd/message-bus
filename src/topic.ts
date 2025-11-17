@@ -109,7 +109,7 @@ export interface TopicOptions {
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createUnicastTopic<T, R = void>(
+export function createUnicastTopic<T = void, R = void>(
   displayName: string,
   options?: Partial<TopicOptions>,
 ): UnicastTopic<T, R> {
@@ -129,7 +129,7 @@ export function createUnicastTopic<T, R = void>(
  * @param displayName A human-readable name for the topic, useful for debugging and logging.
  * @param options Optional topic behavior customizations.
  */
-export function createTopic<T, R = void>(displayName: string, options?: Partial<TopicOptions>): Topic<T, R> {
+export function createTopic<T = void, R = void>(displayName: string, options?: Partial<TopicOptions>): Topic<T, R> {
   return createTopicInternal(displayName, "multicast", options);
 }
 

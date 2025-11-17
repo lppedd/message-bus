@@ -45,6 +45,17 @@ describe("MessageBus", () => {
     expect(handler).toHaveBeenCalledExactlyOnceWith("it works");
   });
 
+  it("should publish a void message", async () => {
+    const VoidTopic = createTopic("Ping");
+    const handler = vi.fn(() => {});
+    messageBus.subscribe(VoidTopic, handler);
+
+    messageBus.publish(VoidTopic);
+    await waitForPromisesAndFakeTimers();
+
+    expect(handler).toHaveBeenCalledExactlyOnceWith(undefined);
+  });
+
   it("should dispose subscription", async () => {
     const handler = vi.fn(() => {});
     messageBus.subscribe(TestTopic, handler).dispose();

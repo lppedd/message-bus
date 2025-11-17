@@ -125,7 +125,7 @@ bus.publish(CommandTopic, "shutdown");
 Note that if the topic uses a `void` type, the value parameter can be omitted:
 
 ```ts
-const PingTopic = createTopic<void>("Ping");
+const PingTopic = createTopic<void>("Ping"); // Or just createTopic("Ping")
 
 // No value needed
 bus.publish(PingTopic);
