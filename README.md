@@ -240,11 +240,7 @@ When applied to a method parameter, a topic created with `createTopic` can act
 as a parameter decorator. This allows wiring up subscriptions directly inside
 class methods.
 
-To enable this behavior, decorate the class with `@AutoSubscribe` and pass the target
-message bus, where subscriptions will be created:
-
 ```ts
-@AutoSubscribe(messageBus) // or () => messageBus, if it needs to be lazily resolved
 export class CommandProcessor {
   onCommand(@CommandTopic() command: string): void {
     if (command === "shutdown") {
@@ -252,6 +248,17 @@ export class CommandProcessor {
     }
   }
 }
+```
+
+To actually enable those subscriptions, an instance of `CommandProcessor`
+must be passed to `MessageBus.subscribeInstance`.
+
+```ts
+// Create an instance, as you'd normally do
+const processor = new CommandProcessor();
+
+// Initialize subscriptions using the class's methods as handlers
+messageBus.subscribeInstance(processor);
 ```
 
 This automatically subscribes the `onCommand` method to `CommandTopic`,
@@ -270,7 +277,6 @@ immediately after the decorated topic parameter. The runtime will automatically
 inject the corresponding subscription object:
 
 ```ts
-@AutoSubscribe(messageBus)
 export class CommandProcessor {
   onCommand(@CommandTopic() command: string, subscription: Subscription): void {
     if (command === "shutdown") {

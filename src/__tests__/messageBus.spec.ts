@@ -1,9 +1,8 @@
 // noinspection JSUnusedLocalSymbols,JSUnusedGlobalSymbols
-/* eslint-disable @typescript-eslint/no-unused-vars,@typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
-import { AutoSubscribe } from "../autoSubscribe";
 import { createMessageBus } from "../messageBus";
 import { createTopic, createUnicastTopic } from "../topic";
 
@@ -66,8 +65,7 @@ describe("MessageBus", () => {
     expect(handler).toHaveBeenCalledTimes(0);
   });
 
-  it("should subscribe via @AutoSubscribe", async () => {
-    @AutoSubscribe(() => messageBus)
+  it("should subscribe and unsubscribe an instance", async () => {
     class Example {
       data?: string;
 
@@ -77,8 +75,15 @@ describe("MessageBus", () => {
     }
 
     const example = new Example();
+    const subscription = messageBus.subscribeInstance(example);
 
     messageBus.publish(TestTopic, "it works");
+    await waitForPromisesAndFakeTimers();
+
+    expect(example.data).toBe("it works");
+
+    subscription!.dispose();
+    messageBus.publish(TestTopic, "it should not work");
     await waitForPromisesAndFakeTimers();
 
     expect(example.data).toBe("it works");

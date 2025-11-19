@@ -1,15 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import type { Constructor } from "./contructor";
 import { check } from "./errors";
 import { getMetadata } from "./metadata";
-import { defaultPriority } from "./registry";
 
 /**
  * A callable interface to allow using {@link Topic} as a parameter decorator.
  */
 export interface TopicDecorator {
-  (priority?: number): ParameterDecorator;
+  (priority?: number, limit?: number): ParameterDecorator;
 }
 
 /**
@@ -140,7 +137,7 @@ export function createTopic<T = void, R = void>(
 /* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "multicast", options?: Partial<TopicOptions>): Topic<T, R>;
 /* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "unicast" | "multicast", options?: Partial<TopicOptions>): Topic<T, R> {
   const topicName = `${mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
-  const topic = (priority: number = defaultPriority): ParameterDecorator => {
+  const topic = (priority?: number, limit?: number): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
       check(propertyKey === undefined || typeof target !== "function", () => {
@@ -165,6 +162,7 @@ export function createTopic<T = void, R = void>(
         topic: topic as unknown as Topic,
         index: parameterIndex,
         priority: priority,
+        limit: limit,
       });
     };
   };

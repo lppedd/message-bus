@@ -500,6 +500,41 @@ export interface MessageBus {
   subscribeOnce<T extends [any, ...any[]]>(topics: Topics<T>, handler: MessageHandler<T[number], void>): Subscription;
 
   /**
+   * Creates subscriptions for the given instance using the topic metadata defined
+   * on its class's methods via `@Topic()`-decorated parameters.
+   *
+   * Each discovered method is bound to the instance and invoked whenever a
+   * message is published to its associated topic. Subscriptions are cleaned up
+   * automatically when the instance is garbage-collected, or immediately when
+   * the returned `Subscription` is explicitly disposed.
+   *
+   * Returns a `Subscription` that allows unsubscribing all discovered methods at once,
+   * or `undefined` if the instance's class has no methods with `@Topic()`-decorated
+   * parameters.
+   *
+   * @example
+   * ```ts
+   * class CommandProcessor {
+   *   // The Subscription parameter is optional.
+   *   // If present, it must immediately follow the decorated parameter.
+   *   onCommand(@CommandTopic() command: string, subscription: Subscription): void {
+   *     if (command === "shutdown") {
+   *       // ...
+   *       subscription.dispose();
+   *     }
+   *   }
+   * }
+   *
+   * // The onCommand method will be registered as a CommandTopic handler
+   * const processor = new CommandProcessor();
+   * messageBus.subscribeInstance(processor);
+   * ```
+   *
+   * @param instance An instance whose class contains `@Topic()`-decorated methods.
+   */
+  subscribeInstance(instance: object): Subscription | undefined;
+
+  /**
    * Sets the maximum number of messages to receive for the next subscription.
    *
    * When the specified limit is reached, the subscription is automatically disposed.
