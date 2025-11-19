@@ -508,7 +508,7 @@ export interface MessageBus {
    * automatically when the instance is garbage-collected, or immediately when
    * the returned `Subscription` is explicitly disposed.
    *
-   * Returns a `Subscription` that allows unsubscribing all discovered methods at once,
+   * Returns a `Subscription` that allows unsubscribing all subscribed methods at once,
    * or `undefined` if the instance's class has no methods with `@Topic()`-decorated
    * parameters.
    *
