@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- Replaced the `@AutoSubscribe` decorator with `MessageBus.subscribeInstance`.
+
 ## 0.7.1
 
 - Changed `createTopic` and `createUnicastTopic` to default the payload type `T` to `void`.  
