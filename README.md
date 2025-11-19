@@ -282,7 +282,7 @@ export class CommandProcessor {
 }
 ```
 
-> [!NOTE]  
+> [!IMPORTANT]  
 > Only one `Subscription` parameter is allowed per method, and it must follow the topic parameter.
 
 ## Subscription options
