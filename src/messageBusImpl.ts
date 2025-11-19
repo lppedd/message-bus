@@ -164,6 +164,8 @@ export class MessageBusImpl implements MessageBus {
       },
     };
 
+    // If the instance has already been subscribed before, return the "same"
+    // subscription instead of throwing an error
     if (this.myWeakRefs.has(instance)) {
       return instanceSub;
     }
@@ -203,6 +205,8 @@ export class MessageBusImpl implements MessageBus {
       subscriptions.push(sub);
     }
 
+    // Allow disposing subscriptions when the instance is GCed.
+    // See myFinalizationRegistry at the top.
     this.myFinalizationRegistry.register(instance, subscriptions);
     return instanceSub;
   }
