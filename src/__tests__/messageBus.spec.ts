@@ -3,7 +3,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
-import { createMessageBus } from "../messageBus";
+import { createMessageBus, type Subscription } from "../messageBus";
 import { createTopic, createUnicastTopic } from "../topic";
 
 const waitForPromisesAndFakeTimers = async (): Promise<void> => {
@@ -68,9 +68,11 @@ describe("MessageBus", () => {
   it("should subscribe and unsubscribe an instance", async () => {
     class Example {
       data?: string;
+      sub?: Subscription;
 
-      onTestTopic(@TestTopic() data: string): void {
+      onTestTopic(@TestTopic() data: string, sub: Subscription): void {
         this.data = data;
+        this.sub = sub;
       }
     }
 
@@ -81,12 +83,14 @@ describe("MessageBus", () => {
     await waitForPromisesAndFakeTimers();
 
     expect(example.data).toBe("it works");
+    expect(example.sub).not.toBeUndefined();
 
     subscription!.dispose();
     messageBus.publish(TestTopic, "it should not work");
     await waitForPromisesAndFakeTimers();
 
     expect(example.data).toBe("it works");
+    expect(example.sub).not.toBeUndefined();
   });
 
   it("should subscribe to multiple topics", async () => {
