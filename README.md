@@ -264,11 +264,6 @@ messageBus.subscribeInstance(processor);
 This automatically subscribes the `onCommand` method to `CommandTopic`,
 and unsubscribes it when the instance is garbage-collected.
 
-> [!NOTE]  
-> The class must be instantiated, either manually or via a third-party mechanism,
-> for the subscription to be activated. Decorating the class alone does not trigger
-> any subscriptions.
-
 ### Unsubscribing programmatically
 
 If you do not want to rely on garbage collection to clean up the subscriptions,
