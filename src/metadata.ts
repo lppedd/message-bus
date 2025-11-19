@@ -6,7 +6,8 @@ export interface MethodSubscription {
   // The index of the annotated parameter (zero-based)
   readonly index: number;
   readonly topic: Topic;
-  readonly priority: number;
+  readonly priority?: number;
+  readonly limit?: number;
 }
 
 // @internal
@@ -20,10 +21,12 @@ export interface Metadata {
 }
 
 // @internal
-export function getMetadata(Class: Constructor<object>): Metadata {
+export function getMetadata(Class: Constructor<object>, initialize?: true): Metadata;
+export function getMetadata(Class: Constructor<object>, initialize: false): Metadata | undefined;
+export function getMetadata(Class: Constructor<object>, initialize: boolean = true): Metadata | undefined {
   let metadata = metadataMap.get(Class);
 
-  if (!metadata) {
+  if (!metadata && initialize) {
     metadataMap.set(
       Class,
       (metadata = {

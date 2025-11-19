@@ -1,10 +1,9 @@
 // noinspection JSUnusedLocalSymbols,JSUnusedGlobalSymbols
-/* eslint-disable @typescript-eslint/no-unused-vars,@typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
-import { AutoSubscribe } from "../autoSubscribe";
-import { createMessageBus } from "../messageBus";
+import { createMessageBus, type Subscription } from "../messageBus";
 import { createTopic, createUnicastTopic } from "../topic";
 
 const waitForPromisesAndFakeTimers = async (): Promise<void> => {
@@ -66,22 +65,32 @@ describe("MessageBus", () => {
     expect(handler).toHaveBeenCalledTimes(0);
   });
 
-  it("should subscribe via @AutoSubscribe", async () => {
-    @AutoSubscribe(() => messageBus)
+  it("should subscribe and unsubscribe an instance", async () => {
     class Example {
       data?: string;
+      sub?: Subscription;
 
-      onTestTopic(@TestTopic() data: string): void {
+      onTestTopic(@TestTopic() data: string, sub: Subscription): void {
         this.data = data;
+        this.sub = sub;
       }
     }
 
     const example = new Example();
+    const subscription = messageBus.subscribeInstance(example);
 
     messageBus.publish(TestTopic, "it works");
     await waitForPromisesAndFakeTimers();
 
     expect(example.data).toBe("it works");
+    expect(example.sub).not.toBeUndefined();
+
+    subscription!.dispose();
+    messageBus.publish(TestTopic, "it should not work");
+    await waitForPromisesAndFakeTimers();
+
+    expect(example.data).toBe("it works");
+    expect(example.sub).not.toBeUndefined();
   });
 
   it("should subscribe to multiple topics", async () => {

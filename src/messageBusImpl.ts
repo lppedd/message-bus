@@ -1,3 +1,5 @@
+import type { Constructor } from "./contructor";
+import { isDisposed } from "./disposable";
 import { check, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
@@ -12,6 +14,7 @@ import type {
   Subscription,
   SubscriptionBuilder,
 } from "./messageBus";
+import { getMetadata } from "./metadata";
 import { defaultLimit, defaultPriority, SubscriptionRegistry } from "./registry";
 import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
 import type { Topic, UnicastTopic } from "./topic";
@@ -44,6 +47,11 @@ export class MessageBusImpl implements MessageBus {
   private readonly myListeners: Set<MessageListener>;
   private readonly myInterceptors: Set<MessageInterceptor>;
   private readonly myOptions: MessageBusOptions;
+
+  private readonly myWeakRefs = new WeakMap<object, Subscription[]>();
+  private readonly myFinalizationRegistry = new FinalizationRegistry<Subscription[]>((subs) => {
+    subs.forEach((s) => s.dispose());
+  });
 
   private myInterceptor?: AsyncMessageInterceptor;
   private myPublishing: boolean = false;
@@ -134,6 +142,73 @@ export class MessageBusImpl implements MessageBus {
     return subscription instanceof LazyAsyncRegistration
       ? subscription.single().finally(() => subscription.dispose())
       : subscription;
+  }
+
+  subscribeInstance(instance: object): Subscription | undefined {
+    const metadata = getMetadata(instance.constructor as Constructor<object>, false);
+
+    if (!metadata) {
+      return undefined;
+    }
+
+    const instanceRef = new WeakRef(instance);
+    const instanceSub: Subscription = {
+      dispose: () => {
+        const ref = instanceRef.deref();
+
+        if (ref) {
+          const subscriptions = this.myWeakRefs.get(ref);
+          subscriptions?.forEach((s) => s.dispose());
+          this.myWeakRefs.delete(ref);
+        }
+      },
+    };
+
+    // If the instance has already been subscribed before, return the "same"
+    // subscription instead of throwing an error
+    if (this.myWeakRefs.has(instance)) {
+      return instanceSub;
+    }
+
+    let subscriptions = this.myWeakRefs.get(instance);
+
+    if (!subscriptions) {
+      subscriptions = [];
+      this.myWeakRefs.set(instance, subscriptions);
+    }
+
+    for (const [methodKey, methodSub] of metadata.subscriptions.methods) {
+      const { index, topic, priority = defaultPriority, limit = defaultLimit } = methodSub;
+      const sub = this.subscribeImpl(
+        topic,
+        (data, ...other) => {
+          const ref = instanceRef.deref();
+
+          if (ref && !isDisposed(ref)) {
+            const args = new Array(index + other.length + 2);
+            args[index] = data;
+            args[index + 1] = sub;
+
+            for (let i = 0; i < other.length; i++) {
+              args[index + i + 2] = other[i];
+            }
+
+            (ref as any)[methodKey](...args);
+          } else {
+            sub.dispose();
+          }
+        },
+        limit,
+        priority,
+      );
+
+      subscriptions.push(sub);
+    }
+
+    // Allow disposing subscriptions when the instance is GCed.
+    // See myFinalizationRegistry at the top.
+    this.myFinalizationRegistry.register(instance, subscriptions);
+    return instanceSub;
   }
 
   // @internal
