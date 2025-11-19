@@ -4,6 +4,16 @@
 
 - Replaced the `@AutoSubscribe` decorator with `MessageBus.subscribeInstance`.
 
+  ```ts
+  // Create an instance, as you'd normally do
+  const processor = new CommandProcessor();
+
+  // Initialize subscriptions using the class's methods as handlers
+  messageBus.subscribeInstance(processor);
+  ```
+
+- Supported specifying a `limit` value via the second parameter of a topic decorator.
+
 ## 0.7.1
 
 - Changed `createTopic` and `createUnicastTopic` to default the payload type `T` to `void`.  
