@@ -134,11 +134,11 @@ export function createTopic<T = void, R = void>(
   return createTopicByMode(displayName, "multicast", options);
 }
 
-/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "unicast", options?: Partial<TopicOptions>): UnicastTopic<T, R>;
-/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "multicast", options?: Partial<TopicOptions>): Topic<T, R>;
-/* prettier-ignore */ function createTopicByMode<T, R>(displayName: string, mode: "unicast" | "multicast", options?: Partial<TopicOptions>): Topic<T, R> {
+function createTopicByMode(displayName: string, mode: "unicast", options?: Partial<TopicOptions>): UnicastTopic;
+function createTopicByMode(displayName: string, mode: "multicast", options?: Partial<TopicOptions>): Topic;
+function createTopicByMode(displayName: string, mode: "unicast" | "multicast", options?: Partial<TopicOptions>): Topic {
   const topicName = `${mode === "unicast" ? "UnicastTopic" : "Topic"}<${displayName}>`;
-  const topic = (priority?: number, limit?: number): ParameterDecorator => {
+  const topicDecorator = (priority?: number, limit?: number): ParameterDecorator => {
     return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number): void {
       // Error out if the topic decorator has been applied to a static method
       check(propertyKey === undefined || typeof target !== "function", () => {
@@ -160,7 +160,7 @@ export function createTopic<T = void, R = void>(
       });
 
       methods.set(propertyKey, {
-        topic: topic as unknown as Topic,
+        topic: topicDecorator as unknown as Topic,
         index: parameterIndex,
         priority: priority,
         limit: limit,
@@ -168,11 +168,10 @@ export function createTopic<T = void, R = void>(
     };
   };
 
-  const writableTopic = topic as unknown as Writable<Topic>;
-  writableTopic.displayName = topicName;
-  writableTopic.mode = mode;
-  writableTopic.broadcastDirection = options?.broadcastDirection ?? "children";
-  writableTopic.toString = () => topicName;
-
-  return writableTopic as Topic;
+  const topic = topicDecorator as unknown as Writable<Topic>;
+  topic.displayName = topicName;
+  topic.mode = mode;
+  topic.broadcastDirection = options?.broadcastDirection ?? "children";
+  topic.toString = () => topicName;
+  return topic as Topic;
 }
