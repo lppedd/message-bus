@@ -19,6 +19,11 @@ import { defaultLimit, defaultPriority, SubscriptionRegistry } from "./registry"
 import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
 import type { Topic, UnicastTopic } from "./topic";
 
+type InstanceData = {
+  readonly subscriptions: Subscription[];
+  readonly unregisterToken: object;
+};
+
 type Message = {
   readonly topic: Topic;
   readonly data: unknown;
@@ -48,7 +53,7 @@ export class MessageBusImpl implements MessageBus {
   private readonly myInterceptors: Set<MessageInterceptor>;
   private readonly myOptions: MessageBusOptions;
 
-  private readonly myInstances = new WeakMap<object, Subscription[]>();
+  private readonly myInstances = new WeakMap<object, InstanceData>();
   private readonly myFinalizationRegistry = new FinalizationRegistry<Subscription[]>((subs) => {
     subs.forEach((s) => s.dispose());
   });
@@ -153,7 +158,7 @@ export class MessageBusImpl implements MessageBus {
     }
 
     const instanceRef = new WeakRef(instance);
-    const instanceSubs: Subscription[] = [];
+    const subscriptions: Subscription[] = [];
 
     for (const [methodKey, methodSub] of metadata.subscriptions.methods) {
       const { index, topic, priority = defaultPriority, limit = defaultLimit } = methodSub;
@@ -180,20 +185,20 @@ export class MessageBusImpl implements MessageBus {
         priority,
       );
 
-      instanceSubs.push(sub);
+      subscriptions.push(sub);
     }
 
-    // Allow disposing subscriptions when the instance is GCed.
-    // See myFinalizationRegistry at the top.
-    this.myFinalizationRegistry.register(instance, instanceSubs);
-    this.myInstances.set(instance, instanceSubs);
+    const unregisterToken = {};
+    this.myInstances.set(instance, { subscriptions, unregisterToken });
+    this.myFinalizationRegistry.register(instance, subscriptions, unregisterToken);
   }
 
   unsubscribeInstance(instance: object): void {
-    const instanceSubs = this.myInstances.get(instance);
+    const data = this.myInstances.get(instance);
 
-    if (instanceSubs) {
-      instanceSubs.forEach((s) => s.dispose());
+    if (data) {
+      data.subscriptions.forEach((s) => s.dispose());
+      this.myFinalizationRegistry.unregister(data.unregisterToken);
       this.myInstances.delete(instance);
     }
   }
