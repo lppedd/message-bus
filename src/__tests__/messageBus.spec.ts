@@ -3,8 +3,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
-import { createMessageBus, type Subscription } from "../messageBus";
-import { createTopic, createUnicastTopic } from "../topic";
+import { createMessageBus, createTopic, createUnicastTopic, type Subscription } from "..";
 
 const waitForPromisesAndFakeTimers = async (): Promise<void> => {
   do {
