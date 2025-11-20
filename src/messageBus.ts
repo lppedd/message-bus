@@ -523,11 +523,11 @@ export interface MessageBus {
   subscribeInstance(instance: object): void;
 
   /**
-   * Unsubscribes all topic handlers previously registered for the given instance
-   * via {@link subscribeInstance}. Any handlers bound to the instance will no longer
-   * be invoked for their associated topic messages.
+   * Disposes all subscriptions to topics previously registered for the given instance
+   * via {@link subscribeInstance}. Any method handler bound to the instance will
+   * no longer be invoked when messages are published to its associated topic.
    *
-   * @param instance An instance whose subscriptions should be removed.
+   * @param instance An instance whose subscriptions should be disposed.
    */
   unsubscribeInstance(instance: object): void;
 
