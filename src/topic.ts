@@ -1,6 +1,7 @@
 import type { Constructor } from "./contructor";
 import { check } from "./errors";
 import { getMetadata } from "./metadata";
+import type { Writable } from "./utils";
 
 /**
  * A callable interface to allow using {@link Topic} as a parameter decorator.
@@ -165,10 +166,6 @@ export function createTopic<T = void, R = void>(
         limit: limit,
       });
     };
-  };
-
-  type Writable<T> = {
-    -readonly [P in keyof T]: T[P];
   };
 
   const writableTopic = topic as unknown as Writable<Topic>;

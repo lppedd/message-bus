@@ -1,14 +1,6 @@
 import { MessageBusImpl } from "./messageBusImpl";
 import type { Topic, Topics, UnicastTopic } from "./topic";
-
-/**
- * Prevents the TS compiler from performing only structural matching on `T`.
- *
- * Without this type, passing an inline plain object to `publish<T>(Topic<T>, T)`
- * would result in missing editor assistance (no go-to declaration, find usages,
- * refactoring), and in being able to add properties not declared by the type `T`.
- */
-type Strict<T> = T extends T ? T : T;
+import type { Strict } from "./utils";
 
 /**
  * A function that handles messages published to a specific {@link Topic}.
