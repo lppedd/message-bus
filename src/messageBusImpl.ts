@@ -48,7 +48,7 @@ export class MessageBusImpl implements MessageBus {
   private readonly myInterceptors: Set<MessageInterceptor>;
   private readonly myOptions: MessageBusOptions;
 
-  private readonly myWeakRefs = new WeakMap<object, Subscription[]>();
+  private readonly myInstances = new WeakMap<object, Subscription[]>();
   private readonly myFinalizationRegistry = new FinalizationRegistry<Subscription[]>((subs) => {
     subs.forEach((s) => s.dispose());
   });
@@ -148,18 +148,12 @@ export class MessageBusImpl implements MessageBus {
     const Class = instance.constructor as Constructor<object>;
     const metadata = getMetadata(Class, /* initialize */ false);
 
-    if (!metadata || this.myWeakRefs.has(instance)) {
+    if (!metadata || this.myInstances.has(instance)) {
       return;
     }
 
-    let subscriptions = this.myWeakRefs.get(instance);
-
-    if (!subscriptions) {
-      subscriptions = [];
-      this.myWeakRefs.set(instance, subscriptions);
-    }
-
     const instanceRef = new WeakRef(instance);
+    const instanceSubs: Subscription[] = [];
 
     for (const [methodKey, methodSub] of metadata.subscriptions.methods) {
       const { index, topic, priority = defaultPriority, limit = defaultLimit } = methodSub;
@@ -186,18 +180,22 @@ export class MessageBusImpl implements MessageBus {
         priority,
       );
 
-      subscriptions.push(sub);
+      instanceSubs.push(sub);
     }
 
     // Allow disposing subscriptions when the instance is GCed.
     // See myFinalizationRegistry at the top.
-    this.myFinalizationRegistry.register(instance, subscriptions);
+    this.myFinalizationRegistry.register(instance, instanceSubs);
+    this.myInstances.set(instance, instanceSubs);
   }
 
   unsubscribeInstance(instance: object): void {
-    const subscriptions = this.myWeakRefs.get(instance);
-    subscriptions?.forEach((s) => s.dispose());
-    this.myWeakRefs.delete(instance);
+    const instanceSubs = this.myInstances.get(instance);
+
+    if (instanceSubs) {
+      instanceSubs.forEach((s) => s.dispose());
+      this.myInstances.delete(instance);
+    }
   }
 
   // @internal
