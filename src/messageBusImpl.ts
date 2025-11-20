@@ -55,7 +55,9 @@ export class MessageBusImpl implements MessageBus {
 
   private readonly myInstances = new WeakMap<object, InstanceData>();
   private readonly myFinalizationRegistry = new FinalizationRegistry<Subscription[]>((subs) => {
-    subs.forEach((s) => s.dispose());
+    for (const sub of subs) {
+      sub.dispose();
+    }
   });
 
   private myInterceptor?: AsyncMessageInterceptor;
@@ -197,7 +199,10 @@ export class MessageBusImpl implements MessageBus {
     const data = this.myInstances.get(instance);
 
     if (data) {
-      data.subscriptions.forEach((s) => s.dispose());
+      for (const sub of data.subscriptions) {
+        sub.dispose();
+      }
+
       this.myFinalizationRegistry.unregister(data.unregisterToken);
       this.myInstances.delete(instance);
     }
