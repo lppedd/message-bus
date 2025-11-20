@@ -17,7 +17,7 @@ export interface Subscriptions {
 
 // @internal
 export interface Metadata {
-  subscriptions: Subscriptions;
+  readonly subscriptions: Subscriptions;
 }
 
 // @internal
