@@ -262,7 +262,8 @@ messageBus.subscribeInstance(processor);
 ```
 
 This automatically subscribes the `onCommand` method to `CommandTopic`,
-and unsubscribes it when the instance is garbage-collected.
+and unsubscribes it when the instance is garbage-collected, or when the
+instance is passed to `MessageBus.unsubscribeInstance`.
 
 ### Unsubscribing programmatically
 

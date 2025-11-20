@@ -144,30 +144,12 @@ export class MessageBusImpl implements MessageBus {
       : subscription;
   }
 
-  subscribeInstance(instance: object): Subscription | undefined {
-    const metadata = getMetadata(instance.constructor as Constructor<object>, false);
+  subscribeInstance(instance: object): void {
+    const Class = instance.constructor as Constructor<object>;
+    const metadata = getMetadata(Class, /* initialize */ false);
 
-    if (!metadata) {
-      return undefined;
-    }
-
-    const instanceRef = new WeakRef(instance);
-    const instanceSub: Subscription = {
-      dispose: () => {
-        const ref = instanceRef.deref();
-
-        if (ref) {
-          const subscriptions = this.myWeakRefs.get(ref);
-          subscriptions?.forEach((s) => s.dispose());
-          this.myWeakRefs.delete(ref);
-        }
-      },
-    };
-
-    // If the instance has already been subscribed before, return the "same"
-    // subscription instead of throwing an error
-    if (this.myWeakRefs.has(instance)) {
-      return instanceSub;
+    if (!metadata || this.myWeakRefs.has(instance)) {
+      return;
     }
 
     let subscriptions = this.myWeakRefs.get(instance);
@@ -176,6 +158,8 @@ export class MessageBusImpl implements MessageBus {
       subscriptions = [];
       this.myWeakRefs.set(instance, subscriptions);
     }
+
+    const instanceRef = new WeakRef(instance);
 
     for (const [methodKey, methodSub] of metadata.subscriptions.methods) {
       const { index, topic, priority = defaultPriority, limit = defaultLimit } = methodSub;
@@ -208,7 +192,12 @@ export class MessageBusImpl implements MessageBus {
     // Allow disposing subscriptions when the instance is GCed.
     // See myFinalizationRegistry at the top.
     this.myFinalizationRegistry.register(instance, subscriptions);
-    return instanceSub;
+  }
+
+  unsubscribeInstance(instance: object): void {
+    const subscriptions = this.myWeakRefs.get(instance);
+    subscriptions?.forEach((s) => s.dispose());
+    this.myWeakRefs.delete(instance);
   }
 
   // @internal

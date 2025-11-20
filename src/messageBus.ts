@@ -497,12 +497,8 @@ export interface MessageBus {
    *
    * Each discovered method is bound to the instance and invoked whenever a
    * message is published to its associated topic. Subscriptions are cleaned up
-   * automatically when the instance is garbage-collected, or immediately when
-   * the returned `Subscription` is explicitly disposed.
-   *
-   * Returns a `Subscription` that allows unsubscribing all subscribed methods at once,
-   * or `undefined` if the instance's class has no methods with `@Topic()`-decorated
-   * parameters.
+   * automatically when the instance is garbage-collected, or when the instance
+   * is passed to {@link unsubscribeInstance}.
    *
    * @example
    * ```ts
@@ -524,7 +520,16 @@ export interface MessageBus {
    *
    * @param instance An instance whose class contains `@Topic()`-decorated methods.
    */
-  subscribeInstance(instance: object): Subscription | undefined;
+  subscribeInstance(instance: object): void;
+
+  /**
+   * Unsubscribes all topic handlers previously registered for the given instance
+   * via {@link subscribeInstance}. Any handlers bound to the instance will no longer
+   * be invoked for their associated topic messages.
+   *
+   * @param instance An instance whose subscriptions should be removed.
+   */
+  unsubscribeInstance(instance: object): void;
 
   /**
    * Sets the maximum number of messages to receive for the next subscription.

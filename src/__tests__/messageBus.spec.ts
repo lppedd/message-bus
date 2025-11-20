@@ -77,15 +77,14 @@ describe("MessageBus", () => {
     }
 
     const example = new Example();
-    const subscription = messageBus.subscribeInstance(example);
-
+    messageBus.subscribeInstance(example);
     messageBus.publish(TestTopic, "it works");
     await waitForPromisesAndFakeTimers();
 
     expect(example.data).toBe("it works");
     expect(example.sub).not.toBeUndefined();
 
-    subscription!.dispose();
+    messageBus.unsubscribeInstance(example);
     messageBus.publish(TestTopic, "it should not work");
     await waitForPromisesAndFakeTimers();
 
