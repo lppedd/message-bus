@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0
+
+- Simplified the subscription and unsubscription of instances.  
+  The `MessageBus` now exposes a pair of methods:
+  - `subscribeInstance(instance): void`
+  - `unsubscribeInstance(instance): void`
+
 ## 0.8.0
 
 - Replaced the `@AutoSubscribe` decorator with `MessageBus.subscribeInstance`.
