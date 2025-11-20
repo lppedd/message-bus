@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+- Applied various code cleanups.
+
 ## 0.9.0
 
 - Simplified the subscription and unsubscription of instances.  
