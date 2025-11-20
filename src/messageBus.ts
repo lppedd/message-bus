@@ -146,7 +146,7 @@ export interface Subscription {
    *
    * After disposal, the subscription will no longer receive messages.
    */
-  readonly dispose: () => void;
+  dispose(): void;
 }
 
 /**
@@ -168,7 +168,7 @@ export interface LazyAsyncSubscription<T = unknown> extends AsyncIterableIterato
    *
    * Throws an error if the subscription was disposed before a message was received.
    */
-  readonly single: () => Promise<T>;
+  single(): Promise<T>;
 }
 
 /**

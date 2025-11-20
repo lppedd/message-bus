@@ -433,7 +433,8 @@ describe("MessageBus", () => {
     // Handler 2
     // Will be called first, and will forward to Handler 1
     messageBus.addInterceptor({
-      isVetoed: () => false,
+      // Make sure the isVetoed method is optional
+      // isVetoed: () => false,
       handler: async (_, handler, data) => {
         // handler = Handler 1
         const result = (await handler(data, "Handler2")) as string;
