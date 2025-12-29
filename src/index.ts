@@ -4,6 +4,7 @@ export type {
   MessageBus,
   MessageBusOptions,
   MessageHandler,
+  MessageInterceptor,
   MessageListener,
   Subscription,
   SubscriptionBuilder,
