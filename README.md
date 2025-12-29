@@ -7,7 +7,7 @@
 [![ecmascript](https://img.shields.io/badge/ES-2022-blue?logo=javascript)](https://en.wikipedia.org/wiki/ECMAScript_version_history#13th_edition_%E2%80%93_ECMAScript_2022)
 [![status](https://img.shields.io/badge/status-alpha-DB3683)](https://github.com/lppedd/message-bus)
 [![build](https://img.shields.io/github/actions/workflow/status/lppedd/message-bus/test.yml.svg?branch=main)](https://github.com/lppedd/message-bus/actions/workflows/test.yml)
-[![minified size](https://img.shields.io/bundlejs/size/@lppedd/message-bus)](https://bundlejs.com/?q=@lppedd/message-bus)
+[![minified size](https://img.shields.io/bundlejs/size/@lppedd/message-bus?label=minified)](https://bundlejs.com/?q=@lppedd/message-bus)
 [![license](https://img.shields.io/badge/license-MIT-F7F7F7)](https://github.com/lppedd/message-bus/blob/main/LICENSE)
 
 </div>
