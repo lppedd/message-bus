@@ -10,17 +10,11 @@
     "verbatimModuleSyntax": true,
     "experimentalDecorators": true,
     "noUncheckedIndexedAccess": true,
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     "target": "ES2022",
     "composite": true,
     "skipLibCheck": true
   },
-  "include": [
-    "."
-  ],
-  "exclude": [
-    "dist"
-  ]
+  "include": ["."],
+  "exclude": ["dist"]
 }
