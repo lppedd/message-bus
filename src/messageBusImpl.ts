@@ -1,4 +1,3 @@
-import { isDisposed } from "./disposable";
 import { check, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
@@ -169,7 +168,7 @@ export class MessageBusImpl implements MessageBus {
         (data, ...other) => {
           const ref = instanceRef.deref();
 
-          if (ref && !isDisposed(ref)) {
+          if (ref && !this.isInstanceDisposed(ref)) {
             const args = new Array(index + other.length + 2);
             args[index] = data;
             args[index + 1] = sub;
@@ -501,6 +500,22 @@ export class MessageBusImpl implements MessageBus {
     } catch (e) {
       printError(e);
     }
+  }
+
+  private isInstanceDisposed(value: any): boolean {
+    if (!value || value.isDisposed === undefined) {
+      return false;
+    }
+
+    if (typeof value.isDisposed === "function") {
+      return value.isDisposed();
+    }
+
+    if (typeof value.isDisposed === "boolean") {
+      return value.isDisposed;
+    }
+
+    return false;
   }
 
   private checkDisposed(): void {
