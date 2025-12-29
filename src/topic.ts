@@ -1,7 +1,6 @@
-import type { Constructor } from "./contructor";
 import { check } from "./errors";
 import { getMetadata } from "./metadata";
-import type { Writable } from "./utils";
+import type { Constructor, Writable } from "./utils";
 
 /**
  * A callable interface to allow using {@link Topic} as a parameter decorator.

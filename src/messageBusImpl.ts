@@ -1,4 +1,3 @@
-import type { Constructor } from "./contructor";
 import { isDisposed } from "./disposable";
 import { check, tag } from "./errors";
 import { HandlerRegistration } from "./handlerRegistration";
@@ -18,6 +17,7 @@ import { getMetadata } from "./metadata";
 import { defaultLimit, defaultPriority, SubscriptionRegistry } from "./registry";
 import { SubscriptionBuilderImpl } from "./subscriptionBuilderImpl";
 import type { Topic, UnicastTopic } from "./topic";
+import type { Constructor } from "./utils";
 
 type InstanceData = {
   readonly subscriptions: Subscription[];

@@ -1,5 +1,5 @@
-import type { Constructor } from "./contructor";
 import type { Topic } from "./topic";
+import type { Constructor } from "./utils";
 
 // @internal
 export interface MethodSubscription {

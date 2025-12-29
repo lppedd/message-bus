@@ -13,3 +13,13 @@ export type Strict<T> = T extends T ? T : T;
  * @internal
  */
 export type Writable<T> = { -readonly [P in keyof T]: T[P] };
+
+/**
+ * Represents a class constructor.
+ *
+ * @internal
+ */
+export interface Constructor<Instance extends object> {
+  new (...args: any[]): Instance;
+  readonly name: string;
+}
