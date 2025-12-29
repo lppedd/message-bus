@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+
+- Fixed missing export of the `MessageInterceptor` type.
+- Removed accidental export of the internal `Constructor` type.
+- Performed internal refactorings (with no behavioral changes).
+- Improved wording for some JSDoc comments.
+
 ## 0.9.1
 
 - Applied various code cleanups.
