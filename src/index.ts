@@ -1,4 +1,3 @@
-export type { Constructor } from "./contructor";
 export type {
   ChildMessageBusOptions,
   LazyAsyncSubscription,
