@@ -1,4 +1,6 @@
 {
+  "$schema": "https://typedoc.org/schema.json",
+  "intentionallyNotExported": ["src/utils.ts:Strict"],
   "externalSymbolLinkMappings": {
     "typescript": {
       "AsyncIterableIterator": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"
