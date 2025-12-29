@@ -91,7 +91,7 @@ export interface MessageInterceptor {
    * should be vetoed (prevented from being dispatched to subscribers).
    *
    * If this method returns or resolves to `true`, the message will not be dispatched
-   * to any subscribers, and subsequent interceptors will not be evaluated.
+   * to any subscribers, and other interceptors will not be evaluated.
    *
    * @example
    * ```ts
@@ -150,7 +150,7 @@ export interface Subscription {
 }
 
 /**
- * Represents a lazily-initialized subscription to a {@link Topic} that is also
+ * Represents a lazily initialized subscription to a {@link Topic} that is also
  * an {@link AsyncIterableIterator}.
  *
  * The subscription supports consuming published messages using `for await ... of`,
@@ -195,7 +195,7 @@ export interface SubscriptionBuilder {
   withPriority(priority: number): SubscriptionBuilder;
 
   /**
-   * Creates a lazily-initialized subscription to the specified topic that is also
+   * Creates a lazily initialized subscription to the specified topic that is also
    * an {@link AsyncIterableIterator}.
    *
    * This allows consuming published messages using the `for await ... of` syntax.
@@ -230,7 +230,7 @@ export interface SubscriptionBuilder {
   /**
    * Subscribes to the specified topic with a callback.
    *
-   * The subscription is established immediately, and stays active until disposal.
+   * The subscription is established immediately and stays active until disposal.
    *
    * @example
    * ```ts
@@ -296,7 +296,7 @@ export interface SubscriptionBuilder {
  */
 export interface MessageBus {
   /**
-   * Whether the message bus is disposed.
+   * Whether the message bus has been disposed.
    */
   readonly isDisposed: boolean;
 
@@ -393,7 +393,7 @@ export interface MessageBus {
   publishAsync<T, R = void>(topic: Topic<T, R>, data: Strict<T>): Promise<R[]>;
 
   /**
-   * Creates a lazily-initialized subscription to the specified topic that is also
+   * Creates a lazily initialized subscription to the specified topic that is also
    * an {@link AsyncIterableIterator}.
    *
    * This allows consuming published messages using the `for await ... of` syntax.

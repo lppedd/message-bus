@@ -285,7 +285,7 @@ export class MessageBusImpl implements MessageBus {
 
     this.myRegistry.clear();
 
-    // Dispose child buses
+    // Dispose of child buses
     for (const child of this.myChildren) {
       child.dispose();
     }
@@ -365,7 +365,7 @@ export class MessageBusImpl implements MessageBus {
       // so the 'catch' code path is always the asynchronous one
       const value =
         // If the registration is an async registration (it does not have a
-        // user-defined handler) we MUST call LazyAsyncRegistration.handler
+        // user-defined handler), we MUST call LazyAsyncRegistration.handler
         // to advance the message limit and data queue machinery
         r instanceof LazyAsyncRegistration
           ? interceptor.handler(topic, (d) => d, data).then((d) => r.handler(d))
@@ -467,7 +467,7 @@ export class MessageBusImpl implements MessageBus {
     return {
       handler: handler,
       isVetoed: async (topic, data) => {
-        // As the rule is the most recently added interceptor wraps all previously added ones,
+        // Since the rule is the most recently added interceptor wraps all previously added ones,
         // we must obey to the same constraint when calling isVetoed, so we loop in reverse
         for (let i = interceptors.length - 1; i > -1; i--) {
           if (await interceptors[i]!.isVetoed?.(topic, data)) {

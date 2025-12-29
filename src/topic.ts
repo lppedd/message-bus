@@ -11,7 +11,7 @@ export interface TopicDecorator {
 }
 
 /**
- * A message topic to categorize messages in the message bus.
+ * A message topic to categorize messages sent via the message bus.
  *
  * @template T The type of the payload data associated with the topic.
  * @template R The type of the value returned from message handlers subscribed to the topic.

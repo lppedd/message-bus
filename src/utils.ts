@@ -2,7 +2,7 @@
  * Prevents the TS compiler from performing only structural matching on `T`.
  *
  * Without this type, passing an inline plain object to `publish<T>(Topic<T>, T)`
- * would result in missing editor assistance (no go-to declaration, find usages,
+ * would result in missing editor assistance (go-to declaration, find usages,
  * refactoring), and in being able to add properties not declared by the type `T`.
  */
 export type Strict<T> = T extends T ? T : T;
