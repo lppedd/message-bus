@@ -503,7 +503,7 @@ export class MessageBusImpl implements MessageBus {
   }
 
   private isInstanceDisposed(value: any): boolean {
-    if (!value || value.isDisposed === undefined) {
+    if (!value || !value.isDisposed) {
       return false;
     }
 
