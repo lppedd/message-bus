@@ -2,7 +2,7 @@ import { check } from "./errors";
 import { LazyAsyncRegistration } from "./lazyAsyncRegistration";
 import type { LazyAsyncSubscription, MessageHandler, Subscription, SubscriptionBuilder } from "./messageBus";
 import type { MessageBusImpl } from "./messageBusImpl";
-import { defaultPriority } from "./registry";
+import { defaultLimit } from "./registry";
 import type { Topic } from "./topic";
 
 // @internal
@@ -41,8 +41,8 @@ export class SubscriptionBuilderImpl implements SubscriptionBuilder {
   subscribeOnce(topic: Topic[]): Promise<unknown>;
   subscribeOnce(topic: Topic[], handler: MessageHandler): Subscription;
   subscribeOnce(topic: Topic | Topic[], handler?: MessageHandler): Subscription | Promise<unknown> {
-    check(this.myLimit === 1, "setting a limit is not supported with subscribeOnce");
-    const subscription = this.myMessageBus.subscribeImpl(topic, handler, 1, defaultPriority);
+    check(this.myLimit === defaultLimit, "setting a limit is not supported with subscribeOnce");
+    const subscription = this.myMessageBus.subscribeImpl(topic, handler, 1, this.myPriority);
     return subscription instanceof LazyAsyncRegistration
       ? subscription.single().finally(() => subscription.dispose())
       : subscription;
