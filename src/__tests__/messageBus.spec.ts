@@ -140,6 +140,7 @@ describe("MessageBus", () => {
 
   it("should throw if multiple topics per method", () => {
     expect(() => {
+      // eslint-disable-next-line no-useless-assignment
       const AnotherTestTopic = createTopic<string>("AnotherTestTopic");
       class Example {
         onTestTopic(@TestTopic() _data1: string, @AnotherTestTopic() _data2: string): void {}
