@@ -155,7 +155,7 @@ describe("MessageBus", () => {
       throw new Error("error occurred in handler");
     });
 
-    vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args: any[]) => {
       expect(args).toHaveLength(2);
       expect(args[0]).toBe("[message-bus] caught unhandled error.");
       expect(String(args[1])).toBe("Error: error occurred in handler");
