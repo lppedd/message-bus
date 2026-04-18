@@ -3,7 +3,7 @@ import type { LazyAsyncSubscription } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
 
-type Pending = {
+type PendingResult = {
   readonly resolve: (v: IteratorResult<unknown>) => void;
   readonly reject: (e?: any) => void;
 };
@@ -11,7 +11,7 @@ type Pending = {
 // @internal
 export class LazyAsyncRegistration implements Registration, LazyAsyncSubscription {
   private readonly myDataQueue: unknown[] = [];
-  private readonly myPromiseQueue: Pending[] = [];
+  private readonly myPromiseQueue: PendingResult[] = [];
   private readonly myRegistry: SubscriptionRegistry;
   private readonly myTopics: Topic[];
 
