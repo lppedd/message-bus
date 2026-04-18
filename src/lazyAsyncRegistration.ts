@@ -3,10 +3,15 @@ import type { LazyAsyncSubscription } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
 
+type Pending = {
+  readonly resolve: (v: IteratorResult<unknown>) => void;
+  readonly reject: (e?: any) => void;
+};
+
 // @internal
 export class LazyAsyncRegistration implements Registration, LazyAsyncSubscription {
   private readonly myDataQueue: unknown[] = [];
-  private readonly myPromiseQueue: [(v: IteratorResult<unknown>) => void, (e?: any) => void][] = [];
+  private readonly myPromiseQueue: Pending[] = [];
   private readonly myRegistry: SubscriptionRegistry;
   private readonly myTopics: Topic[];
 
@@ -27,8 +32,10 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   }
 
   handler = (data: unknown): void => {
+    check(!this.isDisposed, "the subscription is disposed");
+
     if (this.remaining === 0) {
-      this.dispose();
+      this.disposeRegistration("resolve");
       return;
     }
 
@@ -37,7 +44,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
     }
 
     if (this.myPromiseQueue.length > 0) {
-      const [resolve] = this.myPromiseQueue.shift()!;
+      const { resolve } = this.myPromiseQueue.shift()!;
       resolve({ done: false, value: data });
     } else {
       this.myDataQueue.push(data);
@@ -45,16 +52,7 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   };
 
   dispose = (): void => {
-    if (this.isDisposed) {
-      return;
-    }
-
-    this.isDisposed = true;
-    this.isActive = false;
-
-    for (const topic of this.myTopics) {
-      this.myRegistry.remove(topic, this);
-    }
+    this.disposeRegistration("resolve");
   };
 
   single = async (): Promise<unknown> => {
@@ -64,6 +62,8 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
   };
 
   next = async (): Promise<IteratorResult<unknown>> => {
+    check(!this.isDisposed, "the subscription is disposed");
+
     // Consume from the queue before waiting for more data
     if (this.myDataQueue.length > 0) {
       const data = this.myDataQueue.shift()!;
@@ -75,32 +75,45 @@ export class LazyAsyncRegistration implements Registration, LazyAsyncSubscriptio
     }
 
     this.isActive = true;
-    return new Promise((resolve, reject) => this.myPromiseQueue.push([resolve, reject]));
+    return new Promise((resolve, reject) => this.myPromiseQueue.push({ resolve, reject }));
   };
 
   // eslint-disable-next-line @typescript-eslint/require-await
   return = async (): Promise<IteratorResult<unknown>> => {
-    this.dispose();
-
-    // Resolve pending promises
-    while (this.myPromiseQueue.length > 0) {
-      const [resolve] = this.myPromiseQueue.shift()!;
-      resolve({ done: true, value: undefined });
-    }
-
+    this.disposeRegistration("resolve");
     return { done: true, value: undefined };
   };
 
-  throw = (e?: any): Promise<IteratorResult<unknown>> => {
-    this.dispose();
-
-    while (this.myPromiseQueue.length > 0) {
-      const [, reject] = this.myPromiseQueue.shift()!;
-      reject(e);
-    }
-
+  // eslint-disable-next-line @typescript-eslint/require-await
+  throw = async (e?: any): Promise<IteratorResult<unknown>> => {
+    this.disposeRegistration("reject", e);
     throw e;
   };
 
   public [Symbol.asyncIterator] = (): AsyncIterableIterator<unknown> => this;
+
+  private disposeRegistration(state: "resolve" | "reject", error?: any): void {
+    if (this.isDisposed) {
+      return;
+    }
+
+    this.isDisposed = true;
+    this.isActive = false;
+
+    for (const topic of this.myTopics) {
+      this.myRegistry.remove(topic, this);
+    }
+
+    if (state === "resolve") {
+      while (this.myPromiseQueue.length > 0) {
+        const { resolve } = this.myPromiseQueue.shift()!;
+        resolve({ done: true, value: undefined });
+      }
+    } else {
+      while (this.myPromiseQueue.length > 0) {
+        const { reject } = this.myPromiseQueue.shift()!;
+        reject(error);
+      }
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import { check } from "./errors";
 import type { MessageHandler } from "./messageBus";
 import type { Registration, SubscriptionRegistry } from "./registry";
 import type { Topic } from "./topic";
@@ -33,6 +34,8 @@ export class HandlerRegistration implements Registration {
   }
 
   handler = (data: unknown, ...other: any[]): unknown | Promise<unknown> => {
+    check(!this.isDisposed, "the subscription is disposed");
+
     if (this.remaining === 0) {
       this.dispose();
       return;
